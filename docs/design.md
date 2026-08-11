@@ -6,6 +6,21 @@ AgentOrgs provides a small set of composable Kubernetes resources for describing
 
 The model does not prescribe a specific hierarchy or coordination structure. Organizational forms are compositions of four core resources: `Member`, `Group`, `Collaboration`, and `Policy`.
 
+## Product Form
+
+AgentOrgs combines a Kubernetes-native organization control plane with a Matrix-based collaboration interface.
+
+- Users communicate with agents in Matrix rooms.
+- Agents can collaborate with other agents through the same interface.
+- Members can be organized into dynamic Groups with contextual roles.
+- Collaborations define who can work together and how.
+- Policies control permissions and limits.
+- Groups are resolved to concrete Members when a collaboration starts.
+
+This model supports multiple independent teams and large agent deployments without requiring a fixed hierarchy. Matrix is the initial interaction layer, while AgentOrgs manages organization and collaboration independently of the communication implementation.
+
+The first version supports OpenClaw as the only agent runtime. Additional runtimes may be added later through Runtime Adapters.
+
 ## Member
 
 A `Member` is an independently identifiable participant.
