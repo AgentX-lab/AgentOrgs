@@ -9,7 +9,8 @@ AgentOrgs 使用四种 Kubernetes 资源：`Member`、`Group`、`Collaboration` 
 - `RuntimeAdapter`：让 Agent Runtime 接入 AgentOrgs。
 - `ExecutionBackend`：在 Kubernetes、Sandbox 或外部环境运行 Agent。
 - `CollaborationProvider`：传递协作事件和普通消息。
-- `StorageProvider`：保存工作目录、协作状态和产物。
+- `StorageProvider`：保存 Member 工作区，以及协作状态（run、事件、产物）。
+- `MemoryProvider`：可选的长期记忆读写（不是工作区）。
 
 ## 协作
 
@@ -35,10 +36,18 @@ AgentOrgs 首先支持：
 
 ## 数据
 
-- Kubernetes 保存资源及其状态。
-- Storage Provider 保存工作目录、协作状态和产物。
+工作区、记忆、协作状态分开，避免耦合成一个大网盘：
+
+- Kubernetes 保存四种资源及其状态。
+- `StorageProvider` 保存：
+  - Member 工作区：人格、技能、运行时配置、工作文件（`members/<name>/`）
+  - 协作账本：run、事件、产物（另一前缀）
+- `MemoryProvider` 保存可检索的长期记忆；不管人格和技能。
 - Secret 保存凭证。
-- Agent Runtime 管理 Prompt、Skill、会话和记忆格式。
+- Agent Runtime 只管本地会话和推理过程；本地会话不是组织记忆。
+- Agent 镜像通用；人格和技能在工作区里，不打进镜像。
+
+详见 `docs/design.md` 的 **Workspace, Memory, and Collaboration State**。
 
 ## 目录
 

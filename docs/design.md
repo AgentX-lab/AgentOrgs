@@ -81,3 +81,24 @@ Higher-level organizational concepts are expressed by composing these resources 
 AgentOrgs owns the declarative organizational model and reconciles it with pluggable backends. Backends remain responsible for realizing collaboration patterns, communication, task execution, and agent behavior.
 
 This boundary keeps the organization model independent of any particular agent runtime or coordination implementation.
+
+## Workspace, Memory, and Collaboration State
+
+These three concerns stay separate. Mixing them creates high coupling and makes providers hard to replace.
+
+| Concern | What it holds | Who owns it | First provider |
+|---|---|---|---|
+| Workspace | identity and tools for one Member: persona (`SOUL.md` / `AGENTS.md`), skills, runtime config (`openclaw.json`), work artifacts | `StorageProvider` | MinIO prefix `members/<name>/` |
+| Long-term memory | durable facts, preferences, and recallable experience | `MemoryProvider` (pluggable) | optional later (e.g. Mem0); not required for MVP |
+| Collaboration state | runs, events, and collaboration artifacts | `StorageProvider` (separate keys/prefix) | MinIO prefix for runs/events |
+
+Rules:
+
+1. Object storage is a workspace and collaboration ledger, not a memory engine.
+2. A memory engine does not store persona files or skills.
+3. Persona and skills belong to the Member workspace. They are not baked into the agent image.
+4. The agent image is a generic runtime box (OpenClaw + sync glue). One image serves many Members; each Member has its own workspace prefix.
+5. On start, the agent pulls its workspace. While running, it pushes workspace changes back. Memory read/write goes through `MemoryProvider`, not ad-hoc files in MinIO.
+6. OpenClaw local sessions are runtime-only. They are not the system of record for organization memory.
+
+This keeps Controller, Storage, Memory, Runtime, and Collaboration independently swappable through provider bindings.

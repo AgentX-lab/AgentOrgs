@@ -22,7 +22,8 @@ Runs collaborations between participants. It sends requests, validates structure
 - `RuntimeAdapter`: configures an agent runtime and connects it to the collaboration protocol.
 - `ExecutionBackend`: runs an agent in Kubernetes, a sandbox, or an external environment.
 - `CollaborationProvider`: transports events and messages.
-- `StorageProvider`: stores workspaces, collaboration state, and artifacts.
+- `StorageProvider`: stores Member workspaces and collaboration state (runs, events, artifacts).
+- `MemoryProvider`: optional long-term memory store and recall (not the workspace).
 
 ## Collaboration Patterns
 
@@ -65,10 +66,18 @@ The selected pattern defines the structure of `payload`. The Collaboration Engin
 
 ## Data Ownership
 
+Keep workspace, memory, and collaboration state decoupled:
+
 - Kubernetes stores the four resources and their status.
-- Storage Providers store workspaces, collaboration state, and artifacts.
+- `StorageProvider` stores:
+  - Member workspace: persona, skills, runtime config, work files (`members/<name>/`)
+  - Collaboration ledger: runs, events, artifacts (separate keys/prefix)
+- `MemoryProvider` stores long-term memory for recall. It does not own persona or skills.
 - Kubernetes Secrets or external secret systems store credentials.
-- Agent runtimes own prompts, skills, reasoning, sessions, and memory formats.
+- Agent runtimes own local sessions and in-process reasoning. Local sessions are not organization memory.
+- The agent image is generic. Member-specific persona and skills live in the workspace, not in the image.
+
+See `docs/design.md` section **Workspace, Memory, and Collaboration State**.
 
 ## Repository Layout
 
