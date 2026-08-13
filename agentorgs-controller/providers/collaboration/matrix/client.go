@@ -104,10 +104,10 @@ func (c *Client) EnsureAppServiceUser(ctx context.Context, localpart string) (us
 	userID = c.UserID(localpart)
 	path := "/_matrix/client/v3/register?kind=user"
 	body := map[string]interface{}{
-		"username":                 localpart,
-		"type":                     "m.login.application_service",
-		"inhibit_login":            false,
-		"auth":                     map[string]string{"type": "m.login.application_service"},
+		"username":      localpart,
+		"type":          "m.login.application_service",
+		"inhibit_login": false,
+		"auth":          map[string]string{"type": "m.login.application_service"},
 	}
 	var resp struct {
 		AccessToken string `json:"access_token"`
@@ -129,10 +129,10 @@ func (c *Client) EnsureAppServiceUser(ctx context.Context, localpart string) (us
 
 func (c *Client) CreateRoom(ctx context.Context, token, name, aliasLocalpart string, invite []string) (string, error) {
 	body := map[string]interface{}{
-		"name":          name,
-		"preset":        "private_chat",
-		"invite":        invite,
-		"is_direct":     false,
+		"name":            name,
+		"preset":          "private_chat",
+		"invite":          invite,
+		"is_direct":       false,
 		"room_alias_name": aliasLocalpart,
 	}
 	var resp struct {

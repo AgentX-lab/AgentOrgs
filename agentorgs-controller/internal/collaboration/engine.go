@@ -6,12 +6,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/google/uuid"
 	agentorgsv1alpha1 "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/api/v1alpha1"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/internal/organization"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/internal/policy"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/pkg/protocol"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/pkg/provider"
+	"github.com/google/uuid"
 )
 
 // Engine orchestrates collaboration runs and events.

@@ -25,12 +25,12 @@ type Config struct {
 	MatrixAccessToken string // optional sender token; AppService AS token is preferred
 
 	// Matrix AppService (homeserver pushes room events to the controller).
-	MatrixAppServiceEnabled        bool
-	MatrixAppServiceID             string
-	MatrixAppServiceASToken        string
-	MatrixAppServiceHSToken        string
+	MatrixAppServiceEnabled         bool
+	MatrixAppServiceID              string
+	MatrixAppServiceASToken         string
+	MatrixAppServiceHSToken         string
 	MatrixAppServiceSenderLocalpart string
-	MatrixAppServicePushURL        string
+	MatrixAppServicePushURL         string
 
 	// MatrixSetupEnabled (env AGENTORGS_MATRIX_BOOTSTRAP) creates Matrix users/rooms for Members and Groups.
 	MatrixBootstrapEnabled bool

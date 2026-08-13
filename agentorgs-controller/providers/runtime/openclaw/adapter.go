@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	providerName      = "openclaw"
+	providerName       = "openclaw"
 	openclawConfigFile = "openclaw.json"
 	matrixSecretPrefix = "matrix-"
 )
