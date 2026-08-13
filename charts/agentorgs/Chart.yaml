@@ -1,0 +1,6 @@
+apiVersion: v2
+name: agentorgs
+description: AgentOrgs organization and collaboration control plane
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

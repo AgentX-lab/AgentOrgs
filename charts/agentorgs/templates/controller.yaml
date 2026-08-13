@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentorgs-controller
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.controller.replicaCount }}
+  selector:
+    matchLabels:
+      app: agentorgs-controller
+  template:
+    metadata:
+      labels:
+        app: agentorgs-controller
+    spec:
+      serviceAccountName: agentorgs-controller
+      containers:
+        - name: controller
+          image: "{{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}"
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.controller.service.port }}
+              name: http
+          envFrom:
+            - secretRef:
+                name: agentorgs-runtime
+          env:
+            - name: AGENTORGS_NAMESPACE
+              value: {{ .Values.namespace | quote }}
+            - name: AGENTORGS_HTTP_ADDR
+              value: ":{{ .Values.controller.service.port }}"
+            - name: AGENTORGS_OPENCLAW_AGENT_IMAGE
+              value: {{ .Values.controller.openclawAgentImage | quote }}
+            - name: AGENTORGS_HERMES_AGENT_IMAGE
+              value: {{ .Values.controller.hermesAgentImage | quote }}
+            - name: AGENTORGS_MINIO_ENDPOINT
+              value: "minio:{{ .Values.minio.service.port }}"
+            - name: AGENTORGS_MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agentorgs-runtime
+                  key: MINIO_ACCESS_KEY
+            - name: AGENTORGS_MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agentorgs-runtime
+                  key: MINIO_SECRET_KEY
+            - name: AGENTORGS_MINIO_BUCKET
+              value: agentorgs
+            - name: AGENTORGS_MATRIX_HOMESERVER
+              value: "http://tuwunel:{{ .Values.matrix.service.port }}"
+            - name: AGENTORGS_MATRIX_DOMAIN
+              value: {{ .Values.matrix.domain | quote }}
+            - name: AGENTORGS_MATRIX_APPSERVICE_ENABLED
+              value: "true"
+            - name: AGENTORGS_MATRIX_BOOTSTRAP
+              value: "true"
+            - name: AGENTORGS_MATRIX_APPSERVICE_PUSH_URL
+              value: "http://agentorgs-controller:{{ .Values.controller.service.port }}"
+            - name: AGENTORGS_MATRIX_APPSERVICE_AS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agentorgs-runtime
+                  key: AGENTORGS_MATRIX_APPSERVICE_AS_TOKEN
+            - name: AGENTORGS_MATRIX_APPSERVICE_HS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: agentorgs-runtime
+                  key: AGENTORGS_MATRIX_APPSERVICE_HS_TOKEN
+            - name: AGENTORGS_MATRIX_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: agentorgs-runtime
+                  key: AGENTORGS_MATRIX_ADMIN_PASSWORD
+            - name: AGENTORGS_LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agentorgs-runtime
+                  key: AGENTORGS_LLM_API_KEY
+            - name: AGENTORGS_LLM_BASE_URL
+              value: {{ .Values.controller.llmBaseURL | quote }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentorgs-controller
+  namespace: {{ .Values.namespace }}
+spec:
+  type: NodePort
+  selector:
+    app: agentorgs-controller
+  ports:
+    - name: http
+      port: {{ .Values.controller.service.port }}
+      targetPort: http
+      nodePort: {{ .Values.controller.service.nodePort }}

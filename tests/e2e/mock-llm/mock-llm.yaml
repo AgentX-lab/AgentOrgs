@@ -1,0 +1,106 @@
+# E2E ONLY — do not use in production or local demos with real workloads.
+# Fixed OpenAI-compatible replies so Matrix assertions stay deterministic.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-llm-config
+  namespace: agentorgs
+  labels:
+    app: mock-llm
+    agentorgs.io/e2e: "true"
+data:
+  mock-llm.yaml: |
+    rules:
+      - path: "/v1/chat/completions"
+        method: "POST"
+        match: "@"
+        response:
+          status: 200
+          content: |
+            {
+              "id": "chatcmpl-agentorgs-e2e",
+              "object": "chat.completion",
+              "model": "{{jmes request body.model}}",
+              "choices": [{
+                "message": {
+                  "role": "assistant",
+                  "content": "agentorgs-e2e-ok"
+                },
+                "finish_reason": "stop"
+              }],
+              "usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
+            }
+      - path: "/v1/models"
+        method: "GET"
+        match: "@"
+        response:
+          status: 200
+          content: |
+            {
+              "object": "list",
+              "data": [{"id": "gpt-4o-mini", "object": "model", "owned_by": "mock-llm"}]
+            }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-llm
+  namespace: agentorgs
+  labels:
+    app: mock-llm
+    agentorgs.io/e2e: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-llm
+  template:
+    metadata:
+      labels:
+        app: mock-llm
+        agentorgs.io/e2e: "true"
+    spec:
+      containers:
+        - name: mock-llm
+          image: ghcr.io/dwmkerr/mock-llm:latest
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "/config/mock-llm.yaml"]
+          ports:
+            - name: http
+              containerPort: 6556
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: mock-llm-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-llm
+  namespace: agentorgs
+  labels:
+    app: mock-llm
+    agentorgs.io/e2e: "true"
+spec:
+  selector:
+    app: mock-llm
+  ports:
+    - name: http
+      port: 6556
+      targetPort: http

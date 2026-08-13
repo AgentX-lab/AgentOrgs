@@ -1,0 +1,3 @@
+// Package e2e holds kind-cluster end-to-end tests for AgentOrgs.
+// Run with: go test -tags=e2e ./...
+package e2e

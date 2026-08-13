@@ -1,0 +1,329 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentorgs
+---
+# Collaboration room id is filled by Matrix bootstrap (placeholder until then).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cross-team-channel
+  namespace: agentorgs
+data:
+  roomId: "!cross-team:example.org"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-runtime
+  namespace: agentorgs
+data:
+  runtime: openclaw
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-execution
+  namespace: agentorgs
+data:
+  image: agentorgs/agent-openclaw:local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: product-owner-matrix
+  namespace: agentorgs
+data:
+  userId: "@product-owner:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: be-1-matrix
+  namespace: agentorgs
+data:
+  userId: "@be-1:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: be-2-matrix
+  namespace: agentorgs
+data:
+  userId: "@be-2:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qa-1-matrix
+  namespace: agentorgs
+data:
+  userId: "@qa-1:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qa-2-matrix
+  namespace: agentorgs
+data:
+  userId: "@qa-2:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: architect-matrix
+  namespace: agentorgs
+data:
+  userId: "@architect:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-team-matrix
+  namespace: agentorgs
+data:
+  userId: "@backend-team:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qa-team-matrix
+  namespace: agentorgs
+data:
+  userId: "@qa-team:matrix-local.agentorgs.io"
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: product-owner
+  namespace: agentorgs
+spec:
+  displayName: Product Owner
+  type: Human
+  channels:
+    - provider: matrix
+      config:
+        name: product-owner-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: be-1
+  namespace: agentorgs
+spec:
+  displayName: Backend Engineer 1
+  type: Agent
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: be-1-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: be-2
+  namespace: agentorgs
+spec:
+  displayName: Backend Engineer 2
+  type: Agent
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: be-2-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: qa-1
+  namespace: agentorgs
+spec:
+  displayName: QA Engineer 1
+  type: Agent
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: qa-1-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: qa-2
+  namespace: agentorgs
+spec:
+  displayName: QA Engineer 2
+  type: Agent
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: qa-2-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: architect
+  namespace: agentorgs
+spec:
+  displayName: Architect
+  type: Agent
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: architect-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Group
+metadata:
+  name: backend-team
+  namespace: agentorgs
+spec:
+  displayName: Backend Team
+  channels:
+    - provider: matrix
+      config:
+        name: backend-team-matrix
+        key: userId
+  members:
+    - who:
+        kind: Member
+        name: be-1
+      role: Developer
+    - who:
+        kind: Member
+        name: be-2
+      role: Developer
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Group
+metadata:
+  name: qa-team
+  namespace: agentorgs
+spec:
+  displayName: QA Team
+  channels:
+    - provider: matrix
+      config:
+        name: qa-team-matrix
+        key: userId
+  members:
+    - who:
+        kind: Member
+        name: qa-1
+      role: Tester
+    - who:
+        kind: Member
+        name: qa-2
+      role: Tester
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Collaboration
+metadata:
+  name: cross-team-work
+  namespace: agentorgs
+spec:
+  participants:
+    - who:
+        kind: Member
+        name: product-owner
+      role: Requester
+    - who:
+        kind: Group
+        name: backend-team
+      role: Assignee
+    - who:
+        kind: Group
+        name: qa-team
+      role: Assignee
+    - who:
+        kind: Member
+        name: architect
+      role: Reviewer
+  channel:
+    provider: matrix
+    config:
+      name: cross-team-channel
+      key: roomId
+  allowStartFrom:
+    - Member
+  whenTargetIsGroup:
+    strategy: All
+  expectedResult:
+    mustHave:
+      - status
+      - summary
+  limits:
+    maxReplyRounds: 10
+    timeoutMinutes: 30
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: cross-team-start
+  namespace: agentorgs
+spec:
+  priority: 10
+  effect: Allow
+  from:
+    - kind: Member
+      name: product-owner
+  to:
+    - kind: Group
+      name: backend-team
+    - kind: Group
+      name: qa-team
+    - kind: Member
+      name: architect
+  actions:
+    - Start
+    - Continue
+    - Cancel

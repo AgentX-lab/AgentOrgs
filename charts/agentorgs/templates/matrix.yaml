@@ -1,0 +1,59 @@
+{{- if .Values.matrix.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: tuwunel
+  namespace: {{ .Values.namespace }}
+spec:
+  type: NodePort
+  selector:
+    app: tuwunel
+  ports:
+    - name: matrix
+      port: {{ .Values.matrix.service.port }}
+      targetPort: matrix
+      nodePort: {{ .Values.matrix.service.nodePort }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tuwunel
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: tuwunel
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tuwunel
+  template:
+    metadata:
+      labels:
+        app: tuwunel
+    spec:
+      containers:
+        - name: tuwunel
+          image: "{{ .Values.matrix.image.repository }}:{{ .Values.matrix.image.tag }}"
+          ports:
+            - name: matrix
+              containerPort: {{ .Values.matrix.service.port }}
+          env:
+            - name: CONDUWUIT_SERVER_NAME
+              value: {{ .Values.matrix.domain | quote }}
+            - name: CONDUWUIT_ADDRESS
+              value: "0.0.0.0"
+            - name: CONDUWUIT_PORT
+              value: {{ .Values.matrix.service.port | quote }}
+            - name: CONDUWUIT_ALLOW_REGISTRATION
+              value: "true"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/tuwunel
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+{{- end }}

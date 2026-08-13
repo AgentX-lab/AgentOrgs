@@ -1,0 +1,55 @@
+name: e2e-matrix
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  matrix-openclaw:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kind
+        uses: helm/kind-action@v1
+        with:
+          install_only: true
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+          cache-dependency-path: tests/e2e/go.sum
+
+      - name: Run Matrix OpenClaw e2e
+        env:
+          AGENTORGS_CLUSTER_NAME: agentorgs-e2e
+          AGENTORGS_E2E_TIMEOUT_SECS: "1200"
+        run: |
+          chmod +x tests/e2e/run.sh
+          bash tests/e2e/run.sh
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          kubectl config use-context kind-agentorgs-e2e || true
+          mkdir -p /tmp/e2e-logs
+          kubectl -n agentorgs get pods -o wide > /tmp/e2e-logs/pods.txt || true
+          kubectl -n agentorgs logs deploy/agentorgs-controller --tail=200 > /tmp/e2e-logs/controller.txt || true
+          kubectl -n agentorgs logs member-worker --tail=200 > /tmp/e2e-logs/worker.txt || true
+          kubectl -n agentorgs logs deploy/mock-llm --tail=100 > /tmp/e2e-logs/mock-llm.txt || true
+          kubectl -n agentorgs get configmap e2e-channel -o yaml > /tmp/e2e-logs/e2e-channel.txt || true
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-matrix-logs
+          path: /tmp/e2e-logs

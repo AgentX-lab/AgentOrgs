@@ -1,0 +1,130 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: policies.agentorgs.io
+spec:
+  group: agentorgs.io
+  names:
+    kind: Policy
+    listKind: PolicyList
+    plural: policies
+    shortNames:
+    - pol
+    singular: policy
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.effect
+      name: Effect
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PolicySpec is what the user configures for a Policy.
+            properties:
+              actions:
+                items:
+                  description: PolicyAction is a collaboration action controlled by
+                    Policy.
+                  type: string
+                type: array
+              effect:
+                description: PolicyEffect says whether this rule allows or blocks
+                  an action.
+                type: string
+              from:
+                items:
+                  description: ObjectRef points to another AgentOrgs resource in the
+                    same namespace.
+                  properties:
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - kind
+                  - name
+                  type: object
+                type: array
+              priority:
+                description: |-
+                  Priority decides which policy wins when rules conflict.
+                  Larger number means higher priority.
+                type: integer
+              to:
+                items:
+                  description: ObjectRef points to another AgentOrgs resource in the
+                    same namespace.
+                  properties:
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - kind
+                  - name
+                  type: object
+                type: array
+            required:
+            - effect
+            type: object
+          status:
+            description: PolicyStatus is what the system reports back.
+            properties:
+              appliedConfigVersion:
+                format: int64
+                type: integer
+              phase:
+                description: PolicyPhase is the current state of a Policy.
+                type: string
+              statusDetails:
+                items:
+                  description: Condition reports resource health.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,199 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: members.agentorgs.io
+spec:
+  group: agentorgs.io
+  names:
+    kind: Member
+    listKind: MemberList
+    plural: members
+    shortNames:
+    - mem
+    singular: member
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MemberSpec is what the user configures for a Member.
+            properties:
+              channels:
+                items:
+                  description: ProviderBinding selects an external provider implementation.
+                  properties:
+                    config:
+                      description: ConfigRef points to a ConfigMap key.
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    credential:
+                      description: CredentialRef points to a Secret key.
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    provider:
+                      type: string
+                  required:
+                  - config
+                  - provider
+                  type: object
+                type: array
+              displayName:
+                type: string
+              execution:
+                description: ProviderBinding selects an external provider implementation.
+                properties:
+                  config:
+                    description: ConfigRef points to a ConfigMap key.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  credential:
+                    description: CredentialRef points to a Secret key.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  provider:
+                    type: string
+                required:
+                - config
+                - provider
+                type: object
+              image:
+                type: string
+              runtime:
+                description: ProviderBinding selects an external provider implementation.
+                properties:
+                  config:
+                    description: ConfigRef points to a ConfigMap key.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  credential:
+                    description: CredentialRef points to a Secret key.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  provider:
+                    type: string
+                required:
+                - config
+                - provider
+                type: object
+              type:
+                description: MemberType says what kind of participant this is.
+                type: string
+            required:
+            - type
+            type: object
+          status:
+            description: MemberStatus is what the system reports back.
+            properties:
+              appliedConfigVersion:
+                format: int64
+                type: integer
+              connections:
+                description: MemberConnections records the live provider instances
+                  for this Member.
+                properties:
+                  channels:
+                    items:
+                      type: string
+                    type: array
+                  execution:
+                    type: string
+                  runtime:
+                    type: string
+                type: object
+              matrixUserId:
+                description: resolved Matrix MXID for @mentions
+                type: string
+              phase:
+                description: MemberPhase is the current state of a Member.
+                type: string
+              statusDetails:
+                items:
+                  description: Condition reports resource health.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,146 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: groups.agentorgs.io
+spec:
+  group: agentorgs.io
+  names:
+    kind: Group
+    listKind: GroupList
+    plural: groups
+    shortNames:
+    - grp
+    singular: group
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.memberCount
+      name: Members
+      type: integer
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: GroupSpec is what the user configures for a Group.
+            properties:
+              channels:
+                description: e.g. Matrix identity so the Group can be @mentioned
+                items:
+                  description: ProviderBinding selects an external provider implementation.
+                  properties:
+                    config:
+                      description: ConfigRef points to a ConfigMap key.
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    credential:
+                      description: CredentialRef points to a Secret key.
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    provider:
+                      type: string
+                  required:
+                  - config
+                  - provider
+                  type: object
+                type: array
+              displayName:
+                type: string
+              members:
+                items:
+                  description: GroupMember is one person or subgroup inside this Group.
+                  properties:
+                    role:
+                      type: string
+                    who:
+                      description: ObjectRef points to another AgentOrgs resource
+                        in the same namespace.
+                      properties:
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - kind
+                      - name
+                      type: object
+                  required:
+                  - who
+                  type: object
+                type: array
+            type: object
+          status:
+            description: GroupStatus is what the system reports back.
+            properties:
+              appliedConfigVersion:
+                format: int64
+                type: integer
+              matrixUserId:
+                description: resolved Matrix MXID for @mentions
+                type: string
+              memberCount:
+                type: integer
+              phase:
+                description: GroupPhase is the current state of a Group.
+                type: string
+              statusDetails:
+                items:
+                  description: Condition reports resource health.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

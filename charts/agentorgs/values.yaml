@@ -1,0 +1,44 @@
+namespace: agentorgs
+
+credentials:
+  llmApiKey: ""
+  minioAccessKey: minioadmin
+  minioSecretKey: minioadmin
+  # Stable local tokens; override in production. Controller does not auto-generate.
+  matrixAppServiceASToken: agentorgs-dev-as-token
+  matrixAppServiceHSToken: agentorgs-dev-hs-token
+  matrixAdminPassword: admin
+
+controller:
+  replicaCount: 1
+  image:
+    repository: agentorgs/controller
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 8090
+    nodePort: 30090
+  openclawAgentImage: agentorgs/agent-openclaw:local
+  hermesAgentImage: agentorgs/agent-hermes:local
+  # Real OpenAI-compatible base URL for production/local demos.
+  # E2E overrides this to the in-cluster mock-llm Service; do not point prod here.
+  llmBaseURL: "https://api.openai.com/v1"
+  resources: {}
+
+minio:
+  enabled: true
+  image:
+    repository: minio/minio
+    tag: RELEASE.2024-12-18T13-15-44Z
+  service:
+    port: 9000
+
+matrix:
+  enabled: true
+  image:
+    repository: jevolk/tuwunel
+    tag: latest
+  domain: matrix-local.agentorgs.io
+  service:
+    port: 6167
+    nodePort: 30080

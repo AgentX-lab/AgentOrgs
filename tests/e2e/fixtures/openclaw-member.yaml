@@ -1,0 +1,132 @@
+# E2E ONLY — one Human requester + one OpenClaw Member + one Matrix Collaboration.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentorgs
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: e2e-channel
+  namespace: agentorgs
+data:
+  roomId: "!e2e-placeholder:example.org"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-runtime
+  namespace: agentorgs
+data:
+  runtime: openclaw
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-execution
+  namespace: agentorgs
+data:
+  image: agentorgs/agent-openclaw:local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: requester-matrix
+  namespace: agentorgs
+data:
+  userId: "@requester:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worker-matrix
+  namespace: agentorgs
+data:
+  userId: "@worker:matrix-local.agentorgs.io"
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: requester
+  namespace: agentorgs
+spec:
+  displayName: E2E Requester
+  type: Human
+  channels:
+    - provider: matrix
+      config:
+        name: requester-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: worker
+  namespace: agentorgs
+spec:
+  displayName: E2E OpenClaw Worker
+  type: Agent
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: worker-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Collaboration
+metadata:
+  name: e2e-matrix
+  namespace: agentorgs
+spec:
+  participants:
+    - who:
+        kind: Member
+        name: requester
+      role: Requester
+    - who:
+        kind: Member
+        name: worker
+      role: Assignee
+  channel:
+    provider: matrix
+    config:
+      name: e2e-channel
+      key: roomId
+  allowStartFrom:
+    - Member
+  whenTargetIsGroup:
+    strategy: All
+  expectedResult:
+    mustHave:
+      - status
+  limits:
+    maxReplyRounds: 3
+    timeoutMinutes: 10
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: e2e-start
+  namespace: agentorgs
+spec:
+  priority: 10
+  effect: Allow
+  from:
+    - kind: Member
+      name: requester
+  to:
+    - kind: Member
+      name: worker
+  actions:
+    - Start
+    - Continue
+    - Cancel

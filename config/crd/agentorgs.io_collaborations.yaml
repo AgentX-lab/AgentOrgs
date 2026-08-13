@@ -1,0 +1,178 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: collaborations.agentorgs.io
+spec:
+  group: agentorgs.io
+  names:
+    kind: Collaboration
+    listKind: CollaborationList
+    plural: collaborations
+    shortNames:
+    - col
+    singular: collaboration
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.memberCount
+      name: Members
+      type: integer
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CollaborationSpec is what the user configures for a Collaboration.
+            properties:
+              allowStartFrom:
+                items:
+                  description: StartFrom says who is allowed to start a collaboration
+                    run.
+                  type: string
+                type: array
+              channel:
+                description: ProviderBinding selects an external provider implementation.
+                properties:
+                  config:
+                    description: ConfigRef points to a ConfigMap key.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  credential:
+                    description: CredentialRef points to a Secret key.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  provider:
+                    type: string
+                required:
+                - config
+                - provider
+                type: object
+              expectedResult:
+                description: ExpectedResult lists fields that a collaboration result
+                  should include.
+                properties:
+                  mayHave:
+                    items:
+                      type: string
+                    type: array
+                  mustHave:
+                    items:
+                      type: string
+                    type: array
+                type: object
+              limits:
+                properties:
+                  maxReplyRounds:
+                    type: integer
+                  timeoutMinutes:
+                    type: integer
+                type: object
+              participants:
+                items:
+                  description: CollaborationParticipant is one Member or Group in
+                    this Collaboration.
+                  properties:
+                    role:
+                      type: string
+                    who:
+                      description: ObjectRef points to another AgentOrgs resource
+                        in the same namespace.
+                      properties:
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - kind
+                      - name
+                      type: object
+                  required:
+                  - who
+                  type: object
+                type: array
+              whenTargetIsGroup:
+                description: WhenTargetIsGroup controls member selection for Group
+                  targets.
+                properties:
+                  role:
+                    type: string
+                  strategy:
+                    description: GroupTargetStrategy says how to pick members when
+                      the target is a Group.
+                    type: string
+                required:
+                - strategy
+                type: object
+            type: object
+          status:
+            description: CollaborationStatus is what the system reports back.
+            properties:
+              appliedConfigVersion:
+                format: int64
+                type: integer
+              memberCount:
+                type: integer
+              phase:
+                description: CollaborationPhase is the current state of a Collaboration.
+                type: string
+              statusDetails:
+                items:
+                  description: Condition reports resource health.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -97,8 +97,31 @@ Rules:
 1. Object storage is a workspace and collaboration ledger, not a memory engine.
 2. A memory engine does not store persona files or skills.
 3. Persona and skills belong to the Member workspace. They are not baked into the agent image.
-4. The agent image is a generic runtime box (OpenClaw + sync glue). One image serves many Members; each Member has its own workspace prefix.
-5. On start, the agent pulls its workspace. While running, it pushes workspace changes back. Memory read/write goes through `MemoryProvider`, not ad-hoc files in MinIO.
+4. Each runtime has its own agent image (e.g. `agent/openclaw`, later `agent/hermes`). Images share MinIO workspace sync ideas but do not share one generic entrypoint.
+5. On start, the OpenClaw agent pulls its workspace. While running, it pushes workspace changes back. Memory read/write goes through `MemoryProvider`, not ad-hoc files in MinIO.
 6. OpenClaw local sessions are runtime-only. They are not the system of record for organization memory.
+7. Controller calls `StorageProvider.EnsureMemberWorkspace` before starting an Agent Member Pod. Existing workspaces are not overwritten.
+
+### Runtime agent images
+
+Path layout:
+
+```text
+agent/
+├── openclaw/     # agentorgs/agent-openclaw
+└── hermes/       # future: agentorgs/agent-hermes
+```
+
+Build OpenClaw image (default base: official `ghcr.io/openclaw/openclaw:latest`):
+
+```bash
+make build-agent-openclaw
+# optional override:
+make build-agent-openclaw OPENCLAW_BASE_IMAGE=openclaw/openclaw:latest
+```
+
+- Entrypoint is OpenClaw-specific: pull workspace, push loop, then `exec openclaw`.
+- Missing `openclaw` binary is a hard error.
+- Execution backend selects image by `Member.spec.runtime.provider` (`openclaw` / `hermes`), or `Member.spec.image` override.
 
 This keeps Controller, Storage, Memory, Runtime, and Collaboration independently swappable through provider bindings.
