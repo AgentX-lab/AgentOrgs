@@ -168,7 +168,9 @@ func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName,
 	}
 	matrix["autoJoin"] = "allowlist"
 	matrix["autoJoinAllowlist"] = []string{"*"}
-	matrix["dm"] = map[string]interface{}{"policy": "open"}
+	// dmPolicy=open without allowFrom=["*"] drops every DM. Two-member
+	// collaboration rooms are classified as DMs by OpenClaw.
+	matrix["dm"] = map[string]interface{}{"policy": "open", "allowFrom": []string{"*"}}
 	// ClusterIP / private homeserver hosts fail OpenClaw SSRF checks otherwise.
 	matrix["network"] = map[string]interface{}{
 		"dangerouslyAllowPrivateNetwork": true,

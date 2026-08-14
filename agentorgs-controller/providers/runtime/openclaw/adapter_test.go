@@ -105,6 +105,14 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 	if matrix["groupPolicy"] != "open" {
 		t.Fatalf("groupPolicy=%v", matrix["groupPolicy"])
 	}
+	dm := matrix["dm"].(map[string]interface{})
+	if dm["policy"] != "open" {
+		t.Fatalf("dm.policy=%v", dm["policy"])
+	}
+	allowFrom, _ := dm["allowFrom"].([]interface{})
+	if len(allowFrom) != 1 || allowFrom[0] != "*" {
+		t.Fatalf("dm.allowFrom=%v", dm["allowFrom"])
+	}
 	providers := cfg["models"].(map[string]interface{})["providers"].(map[string]interface{})
 	openai := providers["openai"].(map[string]interface{})
 	if openai["baseUrl"] != "http://mock-llm:6556/v1" {
