@@ -30,16 +30,13 @@ type env struct {
 	WorkerMXID    string
 	RequesterMXID string
 	ExpectedText  string
-	Timeout       time.Duration
 }
+
+const stepTimeout = 5 * time.Minute
 
 func loadEnv() env {
 	ns := getenv("AGENTORGS_NAMESPACE", "agentorgs")
 	domain := getenv("AGENTORGS_MATRIX_DOMAIN", "matrix-local.agentorgs.io")
-	timeoutSecs := 600
-	if v := os.Getenv("AGENTORGS_E2E_TIMEOUT_SECS"); v != "" {
-		fmt.Sscanf(v, "%d", &timeoutSecs)
-	}
 	return env{
 		Namespace:     ns,
 		MatrixURL:     strings.TrimRight(getenv("AGENTORGS_MATRIX_URL", "http://127.0.0.1:18080"), "/"),
@@ -47,7 +44,6 @@ func loadEnv() env {
 		WorkerMXID:    "@worker:" + domain,
 		RequesterMXID: "@requester:" + domain,
 		ExpectedText:  getenv("AGENTORGS_E2E_EXPECTED_TEXT", "agentorgs-e2e-ok"),
-		Timeout:       time.Duration(timeoutSecs) * time.Second,
 	}
 }
 

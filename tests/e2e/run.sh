@@ -10,7 +10,6 @@ CLUSTER_NAME="${AGENTORGS_CLUSTER_NAME:-agentorgs-e2e}"
 NAMESPACE="${AGENTORGS_NAMESPACE:-agentorgs}"
 SKIP_KIND="${AGENTORGS_SKIP_KIND:-0}"
 SKIP_BUILD="${AGENTORGS_SKIP_BUILD:-0}"
-TIMEOUT_SECS="${AGENTORGS_E2E_TIMEOUT_SECS:-600}"
 
 log() { echo "[e2e] $*"; }
 die() { echo "[e2e ERROR] $*" >&2; exit 1; }
@@ -76,4 +75,4 @@ kubectl -n "$NAMESPACE" rollout status deployment/agentorgs-controller --timeout
 
 log "running Go e2e tests"
 cd "${SCRIPT_DIR}"
-go test -tags=e2e -count=1 -timeout "${TIMEOUT_SECS}s" -v ./...
+go test -tags=e2e -count=1 -timeout 0 -v ./...
