@@ -71,6 +71,9 @@ log "starting background push every ${SYNC_INTERVAL}s"
     if ! mc mirror "${WORKSPACE_DIR}/" "${REMOTE_PREFIX}/" --overwrite \
       --exclude ".openclaw/matrix/**" \
       --exclude ".openclaw/agents/**" \
+      --exclude "extensions/**" \
+      --exclude ".npm/**" \
+      --exclude ".mc/**" \
       --exclude "*.lock"; then
       log "WARNING: push to MinIO failed; will retry"
     fi
