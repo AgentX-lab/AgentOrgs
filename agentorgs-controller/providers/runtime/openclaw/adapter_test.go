@@ -130,10 +130,6 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 	if entries["matrix"].(map[string]interface{})["enabled"] != true {
 		t.Fatalf("plugins.entries.matrix=%v", entries["matrix"])
 	}
-	rawPaths := plugins["load"].(map[string]interface{})["paths"].([]interface{})
-	if len(rawPaths) != 1 || rawPaths[0] != "/opt/openclaw/extensions/matrix" {
-		t.Fatalf("plugins.load.paths=%v", rawPaths)
-	}
 }
 
 func TestApplySkipsWhenNoMatrixChannel(t *testing.T) {

@@ -20,7 +20,6 @@ const (
 	providerName       = "openclaw"
 	openclawConfigFile = "openclaw.json"
 	matrixSecretPrefix = "matrix-"
-	matrixPluginDir    = "/opt/openclaw/extensions/matrix"
 )
 
 // Adapter connects OpenClaw runtimes to AgentOrgs collaboration events.
@@ -220,9 +219,6 @@ func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName,
 
 	// External matrix plugin must be explicitly trusted or OpenClaw skips the channel.
 	cfg["plugins"] = map[string]interface{}{
-		"load": map[string]interface{}{
-			"paths": []string{matrixPluginDir},
-		},
 		"entries": map[string]interface{}{
 			"matrix": map[string]interface{}{"enabled": true},
 		},
