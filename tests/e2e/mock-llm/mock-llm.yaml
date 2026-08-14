@@ -10,6 +10,11 @@ metadata:
     agentorgs.io/e2e: "true"
 data:
   mock-llm.yaml: |
+    # OpenClaw sends stream:true; mock-llm turns this JSON into OpenAI SSE chunks
+    # (data: {object:chat.completion.chunk} ... data: [DONE]).
+    streaming:
+      chunkSize: 8
+      chunkIntervalMs: 10
     rules:
       - path: "/v1/chat/completions"
         method: "POST"
@@ -20,8 +25,10 @@ data:
             {
               "id": "chatcmpl-agentorgs-e2e",
               "object": "chat.completion",
-              "model": "{{jmes request body.model}}",
+              "created": 0,
+              "model": "gpt-4o-mini",
               "choices": [{
+                "index": 0,
                 "message": {
                   "role": "assistant",
                   "content": "agentorgs-e2e-ok"
