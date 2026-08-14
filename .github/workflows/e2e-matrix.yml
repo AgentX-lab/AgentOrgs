@@ -31,7 +31,7 @@ jobs:
       - name: Run Matrix OpenClaw e2e
         env:
           AGENTORGS_CLUSTER_NAME: agentorgs-e2e
-          AGENTORGS_E2E_TIMEOUT_SECS: "1200"
+          AGENTORGS_E2E_TIMEOUT_SECS: "600"
         run: |
           chmod +x tests/e2e/run.sh
           bash tests/e2e/run.sh
