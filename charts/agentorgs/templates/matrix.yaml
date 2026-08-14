@@ -41,8 +41,9 @@ spec:
               value: {{ .Values.matrix.domain | quote }}
             - name: CONDUWUIT_ADDRESS
               value: "0.0.0.0"
+            # tuwunel latest: port is Either<u16, Vec<u16>>; plain "6167" fails env parse.
             - name: CONDUWUIT_PORT
-              value: {{ .Values.matrix.service.port | quote }}
+              value: "[{{ .Values.matrix.service.port }}]"
             - name: CONDUWUIT_ALLOW_REGISTRATION
               value: "true"
           volumeMounts:
