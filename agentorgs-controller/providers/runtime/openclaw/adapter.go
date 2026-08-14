@@ -122,6 +122,31 @@ func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName,
 		return fmt.Errorf("parse %s: %w", openclawConfigFile, err)
 	}
 
+	// OpenClaw refuses to start without gateway.mode (exit 78).
+	// Containers bind 0.0.0.0 by default and also require an auth token.
+	gateway, _ := cfg["gateway"].(map[string]interface{})
+	if gateway == nil {
+		gateway = map[string]interface{}{}
+		cfg["gateway"] = gateway
+	}
+	gateway["mode"] = "local"
+	auth, _ := gateway["auth"].(map[string]interface{})
+	if auth == nil {
+		auth = map[string]interface{}{}
+		gateway["auth"] = auth
+	}
+	if _, ok := auth["token"].(string); !ok || auth["token"] == "" {
+		auth["token"] = "agentorgs-local"
+	}
+	remote, _ := gateway["remote"].(map[string]interface{})
+	if remote == nil {
+		remote = map[string]interface{}{}
+		gateway["remote"] = remote
+	}
+	if _, ok := remote["token"].(string); !ok || remote["token"] == "" {
+		remote["token"] = auth["token"]
+	}
+
 	channels, _ := cfg["channels"].(map[string]interface{})
 	if channels == nil {
 		channels = map[string]interface{}{}
@@ -144,6 +169,10 @@ func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName,
 	matrix["autoJoin"] = "allowlist"
 	matrix["autoJoinAllowlist"] = []string{"*"}
 	matrix["dm"] = map[string]interface{}{"policy": "open"}
+	// ClusterIP / private homeserver hosts fail OpenClaw SSRF checks otherwise.
+	matrix["network"] = map[string]interface{}{
+		"dangerouslyAllowPrivateNetwork": true,
+	}
 
 	// Point OpenClaw at the controller-configured OpenAI-compatible endpoint.
 	// LLMBaseURL comes from AGENTORGS_LLM_BASE_URL (real provider in prod; mock only in e2e).

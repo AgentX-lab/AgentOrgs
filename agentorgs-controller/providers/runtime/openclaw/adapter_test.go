@@ -114,6 +114,17 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 	if primary != "openai/gpt-4o-mini" {
 		t.Fatalf("primary=%v", primary)
 	}
+	gateway := cfg["gateway"].(map[string]interface{})
+	if gateway["mode"] != "local" {
+		t.Fatalf("gateway.mode=%v", gateway["mode"])
+	}
+	if gateway["auth"].(map[string]interface{})["token"] != "agentorgs-local" {
+		t.Fatalf("gateway.auth.token=%v", gateway["auth"])
+	}
+	network := matrix["network"].(map[string]interface{})
+	if network["dangerouslyAllowPrivateNetwork"] != true {
+		t.Fatalf("network=%v", network)
+	}
 }
 
 func TestApplySkipsWhenNoMatrixChannel(t *testing.T) {

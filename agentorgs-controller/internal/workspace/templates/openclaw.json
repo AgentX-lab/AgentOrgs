@@ -1,4 +1,13 @@
 {
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "token": "agentorgs-local"
+    },
+    "remote": {
+      "token": "agentorgs-local"
+    }
+  },
   "agents": {
     "defaults": {
       "workspace": "/workspace",
@@ -12,7 +21,10 @@
       "enabled": false,
       "homeserver": "",
       "userId": "",
-      "accessToken": ""
+      "accessToken": "",
+      "network": {
+        "dangerouslyAllowPrivateNetwork": true
+      }
     }
   }
 }
