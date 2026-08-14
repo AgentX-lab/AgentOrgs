@@ -65,8 +65,6 @@ func TestOpenClawMemberMatrixReply(t *testing.T) {
 		return err == nil, err
 	})
 
-	t.Log("restarting worker pod to pull latest workspace")
-	deletePod(ctx, cs, e.Namespace, "member-worker")
 	waitUntil(t, remaining(), "member-worker Running", func(ctx context.Context) (bool, error) {
 		phase, err := podPhase(ctx, cs, e.Namespace, "member-worker")
 		if apierrors.IsNotFound(err) {

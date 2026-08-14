@@ -127,14 +127,6 @@ func configMapString(ctx context.Context, cs *kubernetes.Clientset, ns, name, ke
 	return v, nil
 }
 
-func deletePod(ctx context.Context, cs *kubernetes.Clientset, ns, name string) {
-	err := cs.CoreV1().Pods(ns).Delete(ctx, name, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		// Best-effort restart; test will wait for Running.
-		fmt.Fprintf(os.Stderr, "delete pod %s: %v\n", name, err)
-	}
-}
-
 func podPhase(ctx context.Context, cs *kubernetes.Clientset, ns, name string) (corev1.PodPhase, error) {
 	pod, err := cs.CoreV1().Pods(ns).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
