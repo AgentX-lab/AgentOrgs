@@ -12,7 +12,7 @@
 # Override base (optional):
 #   --build-arg BASE_IMAGE=your-registry/openclaw:tag
 
-ARG MC_IMAGE=minio/mc:RELEASE.2024-11-17T19-35-38Z
+ARG MC_IMAGE=minio/mc:latest
 # Official OpenClaw gateway image (see openclaw docs/install/docker.md).
 ARG BASE_IMAGE=ghcr.io/openclaw/openclaw:latest
 
