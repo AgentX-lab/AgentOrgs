@@ -89,6 +89,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	httpServer := &server.HTTPServer{
 		Engine:     engine,
 		AppService: appService,
+		Client:     mgr.GetClient(),
 		Addr:       cfg.HTTPAddr,
 	}
 

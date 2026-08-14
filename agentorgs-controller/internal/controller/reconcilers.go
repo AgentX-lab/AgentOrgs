@@ -62,7 +62,7 @@ func (r *MemberReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	member.Status.AppliedConfigVersion = member.Generation
-	member.Status.Phase = agentorgsv1alpha1.MemberPhaseWaiting
+	runtimeReported := member.Annotations[agentorgsv1alpha1.MemberRuntimeReadyAnnotation] == "true"
 	_ = r.resolveMatrixUserID(ctx, &member)
 
 	if member.Spec.Type != agentorgsv1alpha1.MemberTypeAgent {
@@ -125,8 +125,13 @@ func (r *MemberReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		member.Status.Connections.Execution = ref.Ref
 	}
 
-	member.Status.Phase = agentorgsv1alpha1.MemberPhaseReady
-	member.Status.StatusDetails = setCondition(member.Status.StatusDetails, "Ready", "Reconciled", "Member is ready", metav1.ConditionTrue)
+	if runtimeReported {
+		member.Status.Phase = agentorgsv1alpha1.MemberPhaseReady
+		member.Status.StatusDetails = setCondition(member.Status.StatusDetails, "Ready", "RuntimeReported", "runtime reported ready", metav1.ConditionTrue)
+	} else {
+		member.Status.Phase = agentorgsv1alpha1.MemberPhaseWaiting
+		member.Status.StatusDetails = setCondition(member.Status.StatusDetails, "Ready", "WaitingRuntime", "waiting for runtime report-ready", metav1.ConditionFalse)
+	}
 	if err := r.Status().Update(ctx, &member); err != nil {
 		return ctrl.Result{}, err
 	}

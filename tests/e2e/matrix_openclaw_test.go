@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -56,15 +55,12 @@ func TestOpenClawMemberMatrixReply(t *testing.T) {
 		return err == nil, err
 	})
 
-	waitUntil(t, stepTimeout, "member-worker Running", func(ctx context.Context) (bool, error) {
-		phase, err := podPhase(ctx, cs, e.Namespace, "member-worker")
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		}
+	waitUntil(t, stepTimeout, "member worker Ready", func(ctx context.Context) (bool, error) {
+		phase, err := memberPhase(e.Namespace, "worker")
 		if err != nil {
 			return false, err
 		}
-		return phase == corev1.PodRunning, nil
+		return phase == "Ready", nil
 	})
 
 	t.Run("workspace_templates", func(t *testing.T) {

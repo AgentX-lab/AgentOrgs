@@ -29,6 +29,8 @@ spec:
               value: {{ .Values.namespace | quote }}
             - name: AGENTORGS_HTTP_ADDR
               value: ":{{ .Values.controller.service.port }}"
+            - name: AGENTORGS_CONTROLLER_URL
+              value: "http://agentorgs-controller:{{ .Values.controller.service.port }}"
             - name: AGENTORGS_OPENCLAW_AGENT_IMAGE
               value: {{ .Values.controller.openclawAgentImage | quote }}
             - name: AGENTORGS_HERMES_AGENT_IMAGE

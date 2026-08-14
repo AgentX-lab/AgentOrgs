@@ -6,6 +6,9 @@ import (
 
 const (
 	MemberKind = "Member"
+	// MemberRuntimeReadyAnnotation is set by the member process after it can accept work.
+	// Only the Member reconciler may derive status.phase from this fact.
+	MemberRuntimeReadyAnnotation = "agentorgs.io/runtime-ready"
 )
 
 // MemberType says what kind of participant this is.
@@ -21,10 +24,10 @@ const (
 type MemberPhase string
 
 const (
-	MemberPhaseWaiting     MemberPhase = "Waiting"     // still starting
-	MemberPhaseReady       MemberPhase = "Ready"       // ready to collaborate
-	MemberPhaseNotReady    MemberPhase = "NotReady"    // failed or incomplete setup
-	MemberPhaseStopping    MemberPhase = "Stopping"    // being removed
+	MemberPhaseWaiting  MemberPhase = "Waiting"  // still starting
+	MemberPhaseReady    MemberPhase = "Ready"    // ready to collaborate
+	MemberPhaseNotReady MemberPhase = "NotReady" // failed or incomplete setup
+	MemberPhaseStopping MemberPhase = "Stopping" // being removed
 )
 
 // MemberSpec is what the user configures for a Member.

@@ -88,5 +88,22 @@ shutdown() {
 trap shutdown EXIT INT TERM
 
 export OPENCLAW_CONFIG_PATH="${WORKSPACE_DIR}/openclaw.json"
+
+if [ -n "${AGENTORGS_CONTROLLER_URL:-}" ]; then
+  (
+    url="${AGENTORGS_CONTROLLER_URL%/}/api/v1/members/${NAMESPACE}/${MEMBER_NAME}/ready"
+    n=0
+    until curl -sf -o /dev/null "http://127.0.0.1:18789/readyz" && curl -sf -X POST "${url}"; do
+      n=$((n + 1))
+      if [ "${n}" -ge 24 ]; then
+        log "WARNING: report-ready failed"
+        exit 0
+      fi
+      sleep 5
+    done
+    log "reported ready"
+  ) &
+fi
+
 log "starting OpenClaw"
 exec openclaw gateway || exec openclaw

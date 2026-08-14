@@ -55,14 +55,12 @@ func (b *Backend) Apply(ctx context.Context, member provider.MemberContext) (pro
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyAlways,
-			Containers: []corev1.Container{
-				{
-					Name:            "agent",
-					Image:           image,
-					ImagePullPolicy: corev1.PullIfNotPresent,
-					Env:             b.agentEnv(member),
-				},
-			},
+			Containers: []corev1.Container{{
+				Name:            "agent",
+				Image:           image,
+				ImagePullPolicy: corev1.PullIfNotPresent,
+				Env:             b.agentEnv(member),
+			}},
 		},
 	}
 	if err := b.Client.Create(ctx, pod); err != nil {
@@ -115,7 +113,8 @@ func (b *Backend) agentEnv(member provider.MemberContext) []corev1.EnvVar {
 		{Name: "AGENTORGS_MINIO_SECRET_KEY", Value: b.Config.MinIOSecretKey},
 		{Name: "AGENTORGS_MINIO_BUCKET", Value: b.Config.MinIOBucket},
 		{Name: "AGENTORGS_MINIO_USE_SSL", Value: strconv.FormatBool(b.Config.MinIOUseSSL)},
-		// OpenClaw reads standard OpenAI env vars; values come from controller config.
+		{Name: "AGENTORGS_CONTROLLER_URL", Value: b.Config.ControllerURL},
+		// LLM credentials are injected by the controller; runtimes read OpenAI-compatible env vars.
 		{Name: "OPENAI_API_KEY", Value: b.Config.LLMAPIKey},
 		{Name: "OPENAI_BASE_URL", Value: b.Config.LLMBaseURL},
 	}

@@ -5,15 +5,19 @@ import (
 	"net/http"
 	"strings"
 
+	agentorgsv1alpha1 "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/api/v1alpha1"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/internal/collaboration"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/pkg/protocol"
 	matrixprovider "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/providers/collaboration/matrix"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // HTTPServer exposes collaboration APIs and Matrix AppService endpoints.
 type HTTPServer struct {
 	Engine     *collaboration.Engine
 	AppService *matrixprovider.AppServiceHandler
+	Client     client.Client
 	Addr       string
 }
 
@@ -23,6 +27,7 @@ func (s *HTTPServer) Start() error {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	mux.HandleFunc("POST /api/v1/members/{namespace}/{name}/ready", s.handleMemberReady)
 	mux.HandleFunc("/api/v1/collaborations/", s.handleCollaborations)
 	mux.HandleFunc("/api/v1/runs/", s.handleRuns)
 	mux.HandleFunc("/api/v1/events", s.handleEvents)
@@ -36,6 +41,51 @@ type startCollaborationRequest struct {
 	From    string                  `json:"from"`
 	To      []protocol.ObjectTarget `json:"to"`
 	Payload map[string]interface{}  `json:"payload"`
+}
+
+func (s *HTTPServer) handleMemberReady(w http.ResponseWriter, r *http.Request) {
+	if s.Client == nil {
+		http.Error(w, "member client is not configured", http.StatusInternalServerError)
+		return
+	}
+	namespace := r.PathValue("namespace")
+	name := r.PathValue("name")
+	if namespace == "" || name == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	key := client.ObjectKey{Namespace: namespace, Name: name}
+	for attempt := 0; attempt < 5; attempt++ {
+		var member agentorgsv1alpha1.Member
+		if err := s.Client.Get(r.Context(), key, &member); err != nil {
+			if apierrors.IsNotFound(err) {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if member.Annotations[agentorgsv1alpha1.MemberRuntimeReadyAnnotation] == "true" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		orig := member.DeepCopy()
+		if member.Annotations == nil {
+			member.Annotations = map[string]string{}
+		}
+		member.Annotations[agentorgsv1alpha1.MemberRuntimeReadyAnnotation] = "true"
+		if err := s.Client.Patch(r.Context(), &member, client.MergeFrom(orig)); err != nil {
+			if apierrors.IsConflict(err) {
+				continue
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Error(w, "conflict patching runtime-ready annotation", http.StatusConflict)
 }
 
 func (s *HTTPServer) handleCollaborations(w http.ResponseWriter, r *http.Request) {

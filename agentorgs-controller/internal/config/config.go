@@ -11,6 +11,8 @@ type Config struct {
 	HTTPAddr        string
 	MetricsBindAddr string
 	Namespace       string
+	// ControllerURL is the in-cluster URL member pods use to call the controller HTTP API.
+	ControllerURL string
 
 	OpenClawAgentImage string
 	HermesAgentImage   string
@@ -50,6 +52,7 @@ func Load() Config {
 		HTTPAddr:        env("AGENTORGS_HTTP_ADDR", ":8090"),
 		MetricsBindAddr: env("AGENTORGS_METRICS_ADDR", ":8080"),
 		Namespace:       env("AGENTORGS_NAMESPACE", "agentorgs"),
+		ControllerURL:   env("AGENTORGS_CONTROLLER_URL", "http://agentorgs-controller:8090"),
 
 		OpenClawAgentImage: env("AGENTORGS_OPENCLAW_AGENT_IMAGE", "agentorgs/agent-openclaw:local"),
 		HermesAgentImage:   env("AGENTORGS_HERMES_AGENT_IMAGE", "agentorgs/agent-hermes:local"),

@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -122,12 +121,15 @@ func configMapString(ctx context.Context, cs *kubernetes.Clientset, ns, name, ke
 	return v, nil
 }
 
-func podPhase(ctx context.Context, cs *kubernetes.Clientset, ns, name string) (corev1.PodPhase, error) {
-	pod, err := cs.CoreV1().Pods(ns).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return "", err
+func memberPhase(ns, name string) (string, error) {
+	cmd := exec.Command("kubectl", "-n", ns, "get", "member", name, "-o", "jsonpath={.status.phase}")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("kubectl get member %s: %w (%s)", name, err, strings.TrimSpace(stderr.String()))
 	}
-	return pod.Status.Phase, nil
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 func kubectlExec(ns, pod string, args ...string) (string, error) {
@@ -143,9 +145,9 @@ func kubectlExec(ns, pod string, args ...string) (string, error) {
 }
 
 type matrixClient struct {
-	base   string
-	token  string
-	http   *http.Client
+	base  string
+	token string
+	http  *http.Client
 }
 
 func (c *matrixClient) sendMention(ctx context.Context, roomID, body string, mentionUserIDs []string) error {
