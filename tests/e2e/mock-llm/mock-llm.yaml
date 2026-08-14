@@ -64,13 +64,13 @@ spec:
         - name: mock-llm
           image: ghcr.io/dwmkerr/mock-llm:latest
           imagePullPolicy: IfNotPresent
-          args: ["--config", "/config/mock-llm.yaml"]
           ports:
             - name: http
               containerPort: 6556
           volumeMounts:
             - name: config
-              mountPath: /config
+              mountPath: /app/mock-llm.yaml
+              subPath: mock-llm.yaml
               readOnly: true
           readinessProbe:
             httpGet:
