@@ -67,7 +67,7 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 		"agentorgs/be-1/openclaw.json": []byte(`{"channels":{"matrix":{"enabled":false}}}`),
 	}}
 	adapter := openclawadapter.NewAdapter(config.Config{
-		MatrixHomeserver: "http://tuwunel:6167",
+		MatrixHomeserver: "http://agentorgs-tuwunel:6167",
 		LLMBaseURL:       "http://mock-llm:6556/v1",
 		LLMAPIKey:        "sk-test",
 		DefaultModel:     "gpt-4o-mini",
@@ -93,7 +93,7 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 	if matrix["enabled"] != true {
 		t.Fatalf("enabled=%v", matrix["enabled"])
 	}
-	if matrix["homeserver"] != "http://tuwunel:6167" {
+	if matrix["homeserver"] != "http://agentorgs-tuwunel:6167" {
 		t.Fatalf("homeserver=%v", matrix["homeserver"])
 	}
 	if matrix["userId"] != "@be-1:matrix-local.agentorgs.io" {

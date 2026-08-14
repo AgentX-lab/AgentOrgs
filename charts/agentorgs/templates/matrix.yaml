@@ -1,8 +1,9 @@
 {{- if .Values.matrix.enabled }}
+{{- $tuwunelName := printf "%s-tuwunel" .Release.Name }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: tuwunel
+  name: {{ $tuwunelName }}
   namespace: {{ .Values.namespace }}
 spec:
   type: NodePort
@@ -17,10 +18,10 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: tuwunel
+  name: {{ $tuwunelName }}
   namespace: {{ .Values.namespace }}
 spec:
-  serviceName: tuwunel
+  serviceName: {{ $tuwunelName }}
   replicas: 1
   selector:
     matchLabels:
@@ -39,12 +40,16 @@ spec:
           env:
             - name: CONDUWUIT_SERVER_NAME
               value: {{ .Values.matrix.domain | quote }}
+            - name: CONDUWUIT_DATABASE_PATH
+              value: /var/lib/tuwunel
             - name: CONDUWUIT_ADDRESS
               value: "0.0.0.0"
-            # tuwunel latest: port is Either<u16, Vec<u16>>; plain "6167" fails env parse.
             - name: CONDUWUIT_PORT
-              value: "[{{ .Values.matrix.service.port }}]"
+              value: {{ .Values.matrix.service.port | quote }}
             - name: CONDUWUIT_ALLOW_REGISTRATION
+              value: "true"
+            # Required by tuwunel latest when allow_registration=true without a token.
+            - name: CONDUWUIT_YES_I_AM_VERY_VERY_SURE_I_WANT_AN_OPEN_REGISTRATION_SERVER_PRONE_TO_ABUSE
               value: "true"
           volumeMounts:
             - name: data

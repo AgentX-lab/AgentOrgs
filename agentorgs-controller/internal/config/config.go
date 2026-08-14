@@ -58,7 +58,7 @@ func Load() Config {
 		LLMBaseURL:   env("AGENTORGS_LLM_BASE_URL", "https://api.openai.com/v1"),
 		DefaultModel: env("AGENTORGS_DEFAULT_MODEL", "gpt-4o-mini"),
 
-		MatrixHomeserver:  env("AGENTORGS_MATRIX_HOMESERVER", "http://tuwunel:6167"),
+		MatrixHomeserver:  env("AGENTORGS_MATRIX_HOMESERVER", "http://agentorgs-tuwunel:6167"),
 		MatrixDomain:      env("AGENTORGS_MATRIX_DOMAIN", "matrix-local.agentorgs.io"),
 		MatrixAccessToken: os.Getenv("AGENTORGS_MATRIX_ACCESS_TOKEN"),
 

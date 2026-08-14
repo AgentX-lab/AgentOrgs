@@ -48,7 +48,7 @@ spec:
             - name: AGENTORGS_MINIO_BUCKET
               value: agentorgs
             - name: AGENTORGS_MATRIX_HOMESERVER
-              value: "http://tuwunel:{{ .Values.matrix.service.port }}"
+              value: "http://{{ .Release.Name }}-tuwunel:{{ .Values.matrix.service.port }}"
             - name: AGENTORGS_MATRIX_DOMAIN
               value: {{ .Values.matrix.domain | quote }}
             - name: AGENTORGS_MATRIX_APPSERVICE_ENABLED
