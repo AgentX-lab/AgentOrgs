@@ -98,7 +98,7 @@ func TestOpenClawMemberMatrixReply(t *testing.T) {
 		http:  &http.Client{Timeout: 20 * time.Second},
 	}
 
-	body := "Please reply with the model answer. " + e.WorkerMXID
+	body := "Please reply with the model answer."
 	if err := mx.sendMention(ctx, roomID, body, []string{e.WorkerMXID}); err != nil {
 		t.Fatalf("send mention: %v", err)
 	}

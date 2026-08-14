@@ -156,6 +156,26 @@ func (c *matrixClient) sendMention(ctx context.Context, roomID, body string, men
 		"body":    body,
 	}
 	if len(mentionUserIDs) > 0 {
+		var plain, html strings.Builder
+		for i, user := range mentionUserIDs {
+			if i > 0 {
+				plain.WriteByte(' ')
+				html.WriteByte(' ')
+			}
+			plain.WriteString(user)
+			html.WriteString(`<a href="https://matrix.to/#/`)
+			html.WriteString(url.PathEscape(user))
+			html.WriteString(`">`)
+			html.WriteString(user)
+			html.WriteString(`</a>`)
+		}
+		plain.WriteByte(' ')
+		plain.WriteString(body)
+		html.WriteByte(' ')
+		html.WriteString(body)
+		payload["body"] = plain.String()
+		payload["format"] = "org.matrix.custom.html"
+		payload["formatted_body"] = html.String()
 		payload["m.mentions"] = map[string]interface{}{"user_ids": mentionUserIDs}
 	}
 	txn := fmt.Sprintf("e2e-%d", time.Now().UnixNano())
