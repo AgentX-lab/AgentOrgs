@@ -38,14 +38,12 @@ jobs:
 
       - name: Collect logs on failure
         if: failure()
+        env:
+          AGENTORGS_CLUSTER_NAME: agentorgs-e2e
+          AGENTORGS_NAMESPACE: agentorgs
         run: |
-          kubectl config use-context kind-agentorgs-e2e || true
-          mkdir -p /tmp/e2e-logs
-          kubectl -n agentorgs get pods -o wide > /tmp/e2e-logs/pods.txt || true
-          kubectl -n agentorgs logs deploy/agentorgs-controller --tail=200 > /tmp/e2e-logs/controller.txt || true
-          kubectl -n agentorgs logs member-worker --tail=200 > /tmp/e2e-logs/worker.txt || true
-          kubectl -n agentorgs logs deploy/mock-llm --tail=100 > /tmp/e2e-logs/mock-llm.txt || true
-          kubectl -n agentorgs get configmap e2e-channel -o yaml > /tmp/e2e-logs/e2e-channel.txt || true
+          chmod +x tests/e2e/collect-logs.sh
+          bash tests/e2e/collect-logs.sh /tmp/e2e-logs
 
       - name: Upload failure logs
         if: failure()
