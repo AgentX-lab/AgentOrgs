@@ -81,15 +81,50 @@ func (s *Store) ListEvents(ctx context.Context, namespace, runID string) ([]prot
 	return events, nil
 }
 
-// EnsureMemberWorkspace writes default workspace files only when SOUL.md is absent.
-func (s *Store) EnsureMemberWorkspace(ctx context.Context, namespace, memberName, displayName string) error {
-	soulKey := workspace.MemberPrefix(namespace, memberName) + "SOUL.md"
-	_, err := s.client.StatObject(ctx, s.bucket, soulKey, minio.StatObjectOptions{})
-	if err == nil {
-		return nil
+// EnsureMemberWorkspace seeds base persona/config when SOUL.md is absent, and
+// seeds each resolved skill only when that skill's SKILL.md is absent.
+func (s *Store) EnsureMemberWorkspace(ctx context.Context, namespace, memberName, displayName, skillPack string, extraSkills []string) error {
+	skills, err := workspace.ResolveSkills(skillPack, extraSkills)
+	if err != nil {
+		return err
 	}
 
-	return fs.WalkDir(workspace.Templates, "templates", func(p string, d fs.DirEntry, walkErr error) error {
+	soulKey := workspace.MemberPrefix(namespace, memberName) + "SOUL.md"
+	if _, err := s.client.StatObject(ctx, s.bucket, soulKey, minio.StatObjectOptions{}); err != nil {
+		for _, name := range []string{"SOUL.md", "AGENTS.md", "openclaw.json"} {
+			if putErr := s.putTemplateFile(ctx, namespace, memberName, name, displayName); putErr != nil {
+				return putErr
+			}
+		}
+	}
+
+	for _, skill := range skills {
+		marker := "skills/" + skill + "/SKILL.md"
+		if _, err := s.GetWorkspaceFile(ctx, namespace, memberName, marker); err == nil {
+			continue
+		}
+		if putErr := s.putSkillDir(ctx, namespace, memberName, skill); putErr != nil {
+			return putErr
+		}
+	}
+	return nil
+}
+
+func (s *Store) putTemplateFile(ctx context.Context, namespace, memberName, rel, displayName string) error {
+	data, err := workspace.Templates.ReadFile("templates/" + rel)
+	if err != nil {
+		return err
+	}
+	content := string(data)
+	if path.Base(rel) == "SOUL.md" {
+		content = workspace.Render(content, displayName)
+	}
+	return s.PutWorkspaceFile(ctx, namespace, memberName, rel, []byte(content))
+}
+
+func (s *Store) putSkillDir(ctx context.Context, namespace, memberName, skill string) error {
+	root := "templates/skills/" + skill
+	return fs.WalkDir(workspace.Templates, root, func(p string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
@@ -101,19 +136,7 @@ func (s *Store) EnsureMemberWorkspace(ctx context.Context, namespace, memberName
 			return readErr
 		}
 		rel := strings.TrimPrefix(p, "templates/")
-		content := string(data)
-		if path.Base(rel) == "SOUL.md" {
-			content = workspace.Render(content, displayName)
-		}
-		key := workspace.MemberPrefix(namespace, memberName) + rel
-		contentType := "text/plain"
-		if strings.HasSuffix(rel, ".json") {
-			contentType = "application/json"
-		}
-		_, putErr := s.client.PutObject(ctx, s.bucket, key, bytes.NewReader([]byte(content)), int64(len(content)), minio.PutObjectOptions{
-			ContentType: contentType,
-		})
-		return putErr
+		return s.PutWorkspaceFile(ctx, namespace, memberName, rel, data)
 	})
 }
 

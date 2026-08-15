@@ -1,0 +1,195 @@
+# Two Groups, two work modes — only Collaboration YAML differs.
+#
+#   backend-team-led  → whenTargetIsGroup: Leader  (@Group wakes lead only)
+#   design-peers      → whenTargetIsGroup: All     (@Group wakes every member)
+#
+# Depends on demo.yaml Members: product-owner, be-1, be-2, qa-1, qa-2
+# and ConfigMaps: openclaw-runtime, openclaw-execution, *-matrix for those members.
+# Room ids below are placeholders; Matrix bootstrap replaces them when empty/fake.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-lead-matrix
+  namespace: agentorgs
+data:
+  userId: "@lead:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-team-led-matrix
+  namespace: agentorgs
+data:
+  userId: "@backend-team-led:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: design-peers-matrix
+  namespace: agentorgs
+data:
+  userId: "@design-peers:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-work-channel
+  namespace: agentorgs
+data:
+  roomId: "!backend-work:example.org"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: design-review-channel
+  namespace: agentorgs
+data:
+  roomId: "!design-review:example.org"
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: lead
+  namespace: agentorgs
+spec:
+  displayName: Backend Lead
+  type: Agent
+  skillPack: coordination
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: backend-lead-matrix
+        key: userId
+---
+# --- Group A: Leader / Worker ---
+apiVersion: agentorgs.io/v1alpha1
+kind: Group
+metadata:
+  name: backend-team-led
+  namespace: agentorgs
+spec:
+  channels:
+    - provider: matrix
+      config:
+        name: backend-team-led-matrix
+        key: userId
+  members:
+    - who: { kind: Member, name: lead }
+      role: Leader
+    - who: { kind: Member, name: be-1 }
+    - who: { kind: Member, name: be-2 }
+---
+# --- Group B: peer / flat (no Leader role) ---
+apiVersion: agentorgs.io/v1alpha1
+kind: Group
+metadata:
+  name: design-peers
+  namespace: agentorgs
+spec:
+  channels:
+    - provider: matrix
+      config:
+        name: design-peers-matrix
+        key: userId
+  members:
+    - who: { kind: Member, name: qa-1 }
+    - who: { kind: Member, name: qa-2 }
+---
+# Collaboration A: @backend-team-led → only lead
+apiVersion: agentorgs.io/v1alpha1
+kind: Collaboration
+metadata:
+  name: backend-work
+  namespace: agentorgs
+spec:
+  participants:
+    - who: { kind: Member, name: product-owner }
+    - who: { kind: Group, name: backend-team-led }
+  channel:
+    provider: matrix
+    config:
+      name: backend-work-channel
+      key: roomId
+  whenTargetIsGroup:
+    strategy: Leader
+  limits:
+    maxReplyRounds: 10
+    timeoutMinutes: 30
+---
+# Collaboration B: @design-peers → qa-1 and qa-2
+apiVersion: agentorgs.io/v1alpha1
+kind: Collaboration
+metadata:
+  name: design-review
+  namespace: agentorgs
+spec:
+  participants:
+    - who: { kind: Member, name: product-owner }
+    - who: { kind: Group, name: design-peers }
+  channel:
+    provider: matrix
+    config:
+      name: design-review-channel
+      key: roomId
+  whenTargetIsGroup:
+    strategy: All
+  limits:
+    maxReplyRounds: 10
+    timeoutMinutes: 30
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: allow-owner-start-backend-led
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: product-owner
+  to:
+    - kind: Group
+      name: backend-team-led
+  actions: [Start, Continue, Cancel]
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: allow-lead-dispatch-workers
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: lead
+  to:
+    - kind: Member
+      name: be-1
+    - kind: Member
+      name: be-2
+  actions: [Start, Continue]
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: allow-owner-start-design-peers
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: product-owner
+  to:
+    - kind: Group
+      name: design-peers
+  actions: [Start, Continue, Cancel]

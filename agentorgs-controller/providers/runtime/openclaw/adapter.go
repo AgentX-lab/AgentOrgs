@@ -1,15 +1,11 @@
 package openclaw
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/internal/config"
-	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/pkg/protocol"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/pkg/provider"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +24,6 @@ type Adapter struct {
 	Config  config.Config
 	Storage provider.StorageProvider
 	K8s     client.Client
-	Client  *http.Client
 }
 
 func NewAdapter(cfg config.Config, storage provider.StorageProvider, k8s client.Client) *Adapter {
@@ -36,7 +31,6 @@ func NewAdapter(cfg config.Config, storage provider.StorageProvider, k8s client.
 		Config:  cfg,
 		Storage: storage,
 		K8s:     k8s,
-		Client:  &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -62,36 +56,6 @@ func (a *Adapter) Apply(ctx context.Context, member provider.MemberContext) erro
 }
 
 func (a *Adapter) Delete(_ context.Context, _ provider.MemberContext) error {
-	return nil
-}
-
-func (a *Adapter) SendRequest(ctx context.Context, member provider.MemberContext, event protocol.CollaborationEvent) error {
-	body, err := json.Marshal(map[string]interface{}{
-		"member":  member.Name,
-		"eventId": event.EventID,
-		"runId":   event.RunID,
-		"type":    event.Type,
-		"payload": event.Payload,
-	})
-	if err != nil {
-		return err
-	}
-
-	url := fmt.Sprintf("http://member-%s.%s.svc.cluster.local:8080/agentorgs/events", member.Name, member.Namespace)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := a.Client.Do(req)
-	if err != nil {
-		// MVP fallback: runtime hook may not exist yet; collaboration still proceeds via Matrix/API.
-		return nil
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("openclaw runtime returned %s", resp.Status)
-	}
 	return nil
 }
 

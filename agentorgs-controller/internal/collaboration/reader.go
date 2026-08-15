@@ -28,14 +28,6 @@ func (r *K8sReader) ListGroups(ctx context.Context, namespace string) ([]agentor
 	return list.Items, nil
 }
 
-func (r *K8sReader) ListCollaborations(ctx context.Context, namespace string) ([]agentorgsv1alpha1.Collaboration, error) {
-	var list agentorgsv1alpha1.CollaborationList
-	if err := r.Client.List(ctx, &list, client.InNamespace(namespace)); err != nil {
-		return nil, err
-	}
-	return list.Items, nil
-}
-
 func (r *K8sReader) ListPolicies(ctx context.Context, namespace string) ([]agentorgsv1alpha1.Policy, error) {
 	var list agentorgsv1alpha1.PolicyList
 	if err := r.Client.List(ctx, &list, client.InNamespace(namespace)); err != nil {

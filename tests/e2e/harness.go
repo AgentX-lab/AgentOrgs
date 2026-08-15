@@ -23,12 +23,13 @@ import (
 )
 
 type env struct {
-	Namespace     string
-	MatrixURL     string
-	MatrixDomain  string
-	WorkerMXID    string
-	RequesterMXID string
-	ExpectedText  string
+	Namespace    string
+	MatrixURL    string
+	LeadMXID     string
+	WorkerMXID   string
+	GroupMXID    string
+	ExpectedText string
+	PeerOKText   string
 }
 
 const stepTimeout = 5 * time.Minute
@@ -37,12 +38,13 @@ func loadEnv() env {
 	ns := getenv("AGENTORGS_NAMESPACE", "agentorgs")
 	domain := getenv("AGENTORGS_MATRIX_DOMAIN", "matrix-local.agentorgs.io")
 	return env{
-		Namespace:     ns,
-		MatrixURL:     strings.TrimRight(getenv("AGENTORGS_MATRIX_URL", "http://127.0.0.1:18080"), "/"),
-		MatrixDomain:  domain,
-		WorkerMXID:    "@worker:" + domain,
-		RequesterMXID: "@requester:" + domain,
-		ExpectedText:  getenv("AGENTORGS_E2E_EXPECTED_TEXT", "agentorgs-e2e-ok"),
+		Namespace:    ns,
+		MatrixURL:    strings.TrimRight(getenv("AGENTORGS_MATRIX_URL", "http://127.0.0.1:18080"), "/"),
+		LeadMXID:     "@lead:" + domain,
+		WorkerMXID:   "@worker:" + domain,
+		GroupMXID:    "@e2e-team:" + domain,
+		ExpectedText: getenv("AGENTORGS_E2E_EXPECTED_TEXT", "agentorgs-e2e-ok"),
+		PeerOKText:   getenv("AGENTORGS_E2E_PEER_OK_TEXT", "agentorgs-e2e-peer-ok"),
 	}
 }
 
@@ -183,6 +185,32 @@ func (c *matrixClient) sendMention(ctx context.Context, roomID, body string, men
 	return c.doJSON(ctx, http.MethodPut, path, payload, nil)
 }
 
+func (c *matrixClient) sendPlain(ctx context.Context, roomID, body string) error {
+	return c.sendMention(ctx, roomID, body, nil)
+}
+
+func senderHasText(events []matrixEvent, sender, text string) bool {
+	for _, ev := range events {
+		if ev.Type != "m.room.message" {
+			continue
+		}
+		if ev.Sender == sender && strings.Contains(ev.Content.Body, text) {
+			return true
+		}
+	}
+	return false
+}
+
+func senderMessageCount(events []matrixEvent, sender string) int {
+	n := 0
+	for _, ev := range events {
+		if ev.Type == "m.room.message" && ev.Sender == sender {
+			n++
+		}
+	}
+	return n
+}
+
 func (c *matrixClient) recentMessages(ctx context.Context, roomID string) ([]matrixEvent, error) {
 	path := fmt.Sprintf("/_matrix/client/v3/rooms/%s/messages?dir=b&limit=50", url.PathEscape(roomID))
 	var resp struct {
@@ -237,19 +265,4 @@ func (c *matrixClient) doJSON(ctx context.Context, method, path string, body int
 		}
 	}
 	return nil
-}
-
-func dumpDiagnostics(t *testing.T, ns string) {
-	t.Helper()
-	cmds := [][]string{
-		{"get", "pods", "-o", "wide"},
-		{"logs", "deploy/agentorgs-controller", "--tail=80"},
-		{"logs", "member-worker", "--tail=120"},
-		{"logs", "deploy/mock-llm", "--tail=40"},
-	}
-	for _, args := range cmds {
-		cmd := exec.Command("kubectl", append([]string{"-n", ns}, args...)...)
-		out, _ := cmd.CombinedOutput()
-		t.Logf("kubectl %s:\n%s", strings.Join(args, " "), string(out))
-	}
 }

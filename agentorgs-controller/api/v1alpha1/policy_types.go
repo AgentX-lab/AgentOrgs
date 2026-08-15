@@ -37,13 +37,10 @@ const (
 // PolicySpec is what the user configures for a Policy.
 // +kubebuilder:object:generate=true
 type PolicySpec struct {
-	// Priority decides which policy wins when rules conflict.
-	// Larger number means higher priority.
-	Priority int            `json:"priority,omitempty"`
-	Effect   PolicyEffect   `json:"effect"`             // Allow or Deny
-	From     []ObjectRef    `json:"from,omitempty"`     // who may act
-	To       []ObjectRef    `json:"to,omitempty"`       // who they may act on
-	Actions  []PolicyAction `json:"actions,omitempty"`  // which actions are covered
+	Effect  PolicyEffect   `json:"effect"`            // Allow or Deny
+	From    []ObjectRef    `json:"from,omitempty"`    // who may act
+	To      []ObjectRef    `json:"to,omitempty"`      // who they may act on
+	Actions []PolicyAction `json:"actions,omitempty"` // which actions are covered
 }
 
 // PolicyStatus is what the system reports back.

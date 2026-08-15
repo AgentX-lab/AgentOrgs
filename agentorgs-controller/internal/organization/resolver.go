@@ -110,14 +110,19 @@ func (r *Resolver) ResolveTargets(strategy agentorgsv1alpha1.GroupTargetStrategy
 			if len(members) == 0 {
 				return nil, fmt.Errorf("group %q has no members", target.Name)
 			}
-			leader := members[0]
+			var leaders []string
 			for _, m := range members {
 				if strings.EqualFold(m.Role, "Leader") {
-					leader = m
-					break
+					leaders = append(leaders, m.Name)
 				}
 			}
-			return []string{leader.Name}, nil
+			if len(leaders) == 0 {
+				return nil, fmt.Errorf("group %q has no member with role Leader", target.Name)
+			}
+			if len(leaders) > 1 {
+				return nil, fmt.Errorf("group %q has %d Leaders; want exactly one", target.Name, len(leaders))
+			}
+			return leaders, nil
 		default:
 			return nil, fmt.Errorf("unsupported group target strategy %q", strategy)
 		}

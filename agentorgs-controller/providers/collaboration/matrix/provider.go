@@ -37,7 +37,8 @@ func NewProvider(cfg config.Config, k8s client.Client) *Provider {
 
 func (p *Provider) Name() string { return providerName }
 
-// Deliver posts a human-readable progress line into the Collaboration room.
+// Deliver posts into the Collaboration room.
+// When event.MentionUserIDs is set, agents are woken with visible @mentions.
 func (p *Provider) Deliver(ctx context.Context, event protocol.CollaborationEvent) error {
 	roomID, err := p.lookupRoomID(ctx, event.Namespace, event.Collaboration)
 	if err != nil {
@@ -47,7 +48,7 @@ func (p *Provider) Deliver(ctx context.Context, event protocol.CollaborationEven
 	if err != nil {
 		return err
 	}
-	return p.API.SendMessage(ctx, token, roomID, formatEventText(event))
+	return p.API.SendMessageWithMentions(ctx, token, roomID, formatEventText(event), event.MentionUserIDs)
 }
 
 func (p *Provider) Subscribe(ctx context.Context, handler provider.EventHandler) error {

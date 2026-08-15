@@ -24,7 +24,6 @@ type Engine struct {
 type Reader interface {
 	ListMembers(ctx context.Context, namespace string) ([]agentorgsv1alpha1.Member, error)
 	ListGroups(ctx context.Context, namespace string) ([]agentorgsv1alpha1.Group, error)
-	ListCollaborations(ctx context.Context, namespace string) ([]agentorgsv1alpha1.Collaboration, error)
 	ListPolicies(ctx context.Context, namespace string) ([]agentorgsv1alpha1.Policy, error)
 	GetCollaboration(ctx context.Context, namespace, name string) (agentorgsv1alpha1.Collaboration, error)
 	GetMember(ctx context.Context, namespace, name string) (agentorgsv1alpha1.Member, error)
@@ -209,8 +208,9 @@ func (e *Engine) processMessage(ctx context.Context, run protocol.CollaborationR
 	}
 }
 
-// dispatch wakes Agent runtimes, then posts one visible message to the channel.
+// dispatch wakes resolved Agent members via visible Matrix @mentions in the Collaboration room.
 func (e *Engine) dispatch(ctx context.Context, event protocol.CollaborationEvent, memberNames []string, collab agentorgsv1alpha1.Collaboration) error {
+	mentions := make([]string, 0, len(memberNames))
 	for _, name := range memberNames {
 		member, err := e.Client.GetMember(ctx, event.Namespace, name)
 		if err != nil {
@@ -219,22 +219,13 @@ func (e *Engine) dispatch(ctx context.Context, event protocol.CollaborationEvent
 		if member.Spec.Type != agentorgsv1alpha1.MemberTypeAgent {
 			continue
 		}
-		if member.Spec.Runtime == nil {
-			return fmt.Errorf("member %q has no runtime binding", name)
+		mxid := member.Status.MatrixUserID
+		if mxid == "" {
+			return fmt.Errorf("member %q has empty status.matrixUserId; cannot wake via Matrix mention", name)
 		}
-		runtime, err := e.Registry.Runtime(member.Spec.Runtime.Provider)
-		if err != nil {
-			return err
-		}
-		memberCtx := provider.MemberContext{
-			Namespace: event.Namespace,
-			Name:      name,
-			Spec:      member.Spec,
-		}
-		if err := runtime.SendRequest(ctx, memberCtx, event); err != nil {
-			return err
-		}
+		mentions = append(mentions, mxid)
 	}
+	event.MentionUserIDs = mentions
 
 	channel, err := e.collaborationChannel(collab)
 	if err != nil {

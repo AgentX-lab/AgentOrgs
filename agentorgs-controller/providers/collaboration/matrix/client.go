@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -218,8 +219,10 @@ func (c *Client) SendMessage(ctx context.Context, token, roomID, text string) er
 	return c.SendMessageWithMentions(ctx, token, roomID, text, nil)
 }
 
-// SendMessageWithMentions posts m.room.message and optionally sets m.mentions.user_ids.
-// Matrix CS API requires PUT .../send/{eventType}/{txnId}.
+// SendMessageWithMentions posts m.room.message.
+// When mentionUserIDs is set, the body includes Element-style visible mentions:
+// plain @mxid text, formatted_body matrix.to links, and m.mentions.user_ids.
+// OpenClaw requireMention drops metadata-only mentions.
 func (c *Client) SendMessageWithMentions(ctx context.Context, token, roomID, text string, mentionUserIDs []string) error {
 	txnID := fmt.Sprintf("ao-%d", c.txnSeq.Add(1))
 	path := fmt.Sprintf("/_matrix/client/v3/rooms/%s/send/m.room.message/%s", encodeRoomID(roomID), txnID)
@@ -228,6 +231,10 @@ func (c *Client) SendMessageWithMentions(ctx context.Context, token, roomID, tex
 		"body":    text,
 	}
 	if len(mentionUserIDs) > 0 {
+		plain, html := formatVisibleMentions(mentionUserIDs, text)
+		body["body"] = plain
+		body["format"] = "org.matrix.custom.html"
+		body["formatted_body"] = html
 		body["m.mentions"] = map[string]interface{}{"user_ids": mentionUserIDs}
 	}
 	status, raw, err := c.doJSON(ctx, http.MethodPut, path, token, body, nil)
@@ -238,6 +245,30 @@ func (c *Client) SendMessageWithMentions(ctx context.Context, token, roomID, tex
 		return fmt.Errorf("matrix send message: HTTP %d (%s)", status, string(raw))
 	}
 	return nil
+}
+
+// formatVisibleMentions builds plain + HTML bodies OpenClaw accepts as real mentions.
+func formatVisibleMentions(mentionUserIDs []string, text string) (plain, html string) {
+	var p, h strings.Builder
+	for i, user := range mentionUserIDs {
+		if i > 0 {
+			p.WriteByte(' ')
+			h.WriteByte(' ')
+		}
+		p.WriteString(user)
+		h.WriteString(`<a href="https://matrix.to/#/`)
+		h.WriteString(url.PathEscape(user))
+		h.WriteString(`">`)
+		h.WriteString(user)
+		h.WriteString(`</a>`)
+	}
+	if text != "" {
+		p.WriteByte(' ')
+		p.WriteString(text)
+		h.WriteByte(' ')
+		h.WriteString(text)
+	}
+	return p.String(), h.String()
 }
 
 func (c *Client) AdminCommand(ctx context.Context, adminToken, command string) error {

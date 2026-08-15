@@ -48,22 +48,11 @@ spec:
             description: GroupSpec is what the user configures for a Group.
             properties:
               channels:
-                description: e.g. Matrix identity so the Group can be @mentioned
                 items:
                   description: ProviderBinding selects an external provider implementation.
                   properties:
                     config:
                       description: ConfigRef points to a ConfigMap key.
-                      properties:
-                        key:
-                          type: string
-                        name:
-                          type: string
-                      required:
-                      - name
-                      type: object
-                    credential:
-                      description: CredentialRef points to a Secret key.
                       properties:
                         key:
                           type: string
@@ -79,8 +68,6 @@ spec:
                   - provider
                   type: object
                 type: array
-              displayName:
-                type: string
               members:
                 items:
                   description: GroupMember is one person or subgroup inside this Group.
@@ -111,7 +98,6 @@ spec:
                 format: int64
                 type: integer
               matrixUserId:
-                description: resolved Matrix MXID for @mentions
                 type: string
               memberCount:
                 type: integer

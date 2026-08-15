@@ -71,11 +71,6 @@ spec:
                   - name
                   type: object
                 type: array
-              priority:
-                description: |-
-                  Priority decides which policy wins when rules conflict.
-                  Larger number means higher priority.
-                type: integer
               to:
                 items:
                   description: ObjectRef points to another AgentOrgs resource in the

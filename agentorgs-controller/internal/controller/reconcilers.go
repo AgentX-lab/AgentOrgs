@@ -87,7 +87,7 @@ func (r *MemberReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if displayName == "" {
 		displayName = member.Name
 	}
-	if err := storage.EnsureMemberWorkspace(ctx, member.Namespace, member.Name, displayName); err != nil {
+	if err := storage.EnsureMemberWorkspace(ctx, member.Namespace, member.Name, displayName, member.Spec.SkillPack, member.Spec.Skills); err != nil {
 		member.Status.Phase = agentorgsv1alpha1.MemberPhaseNotReady
 		member.Status.StatusDetails = setCondition(member.Status.StatusDetails, "Ready", "WorkspaceInitFailed", err.Error(), metav1.ConditionFalse)
 		return ctrl.Result{RequeueAfter: 15 * time.Second}, r.Status().Update(ctx, &member)

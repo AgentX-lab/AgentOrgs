@@ -26,9 +26,8 @@ type GroupMember struct {
 // GroupSpec is what the user configures for a Group.
 // +kubebuilder:object:generate=true
 type GroupSpec struct {
-	DisplayName string            `json:"displayName,omitempty"` // name shown in the UI
-	Members     []GroupMember     `json:"members,omitempty"`     // who belongs to this Group
-	Channels    []ProviderBinding `json:"channels,omitempty"`    // e.g. Matrix identity so the Group can be @mentioned
+	Members  []GroupMember     `json:"members,omitempty"`  // who belongs to this Group
+	Channels []ProviderBinding `json:"channels,omitempty"` // e.g. Matrix identity so the Group can be @mentioned
 }
 
 // GroupStatus is what the system reports back.

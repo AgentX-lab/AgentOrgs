@@ -1,0 +1,191 @@
+# E2E ONLY — mention_group_leader: requester + lead + worker, Group Leader mode.
+# @Group wakes lead only; lead can @ worker (token or mock-llm).
+# lead.skillPack=coordination, worker.skillPack=backend (craft ≠ Group.role).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentorgs
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mention-group-leader-channel
+  namespace: agentorgs
+data:
+  roomId: "!mention-group-leader-placeholder:example.org"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-runtime
+  namespace: agentorgs
+data:
+  runtime: openclaw
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-execution
+  namespace: agentorgs
+data:
+  image: agentorgs/agent-openclaw:local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: requester-matrix
+  namespace: agentorgs
+data:
+  userId: "@requester:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lead-matrix
+  namespace: agentorgs
+data:
+  userId: "@lead:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worker-matrix
+  namespace: agentorgs
+data:
+  userId: "@worker:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: e2e-team-matrix
+  namespace: agentorgs
+data:
+  userId: "@e2e-team:matrix-local.agentorgs.io"
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: requester
+  namespace: agentorgs
+spec:
+  displayName: E2E Requester
+  type: Human
+  channels:
+    - provider: matrix
+      config:
+        name: requester-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: lead
+  namespace: agentorgs
+spec:
+  displayName: E2E Lead
+  type: Agent
+  skillPack: coordination
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: lead-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: worker
+  namespace: agentorgs
+spec:
+  displayName: E2E Backend Worker
+  type: Agent
+  skillPack: backend
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: worker-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Group
+metadata:
+  name: e2e-team
+  namespace: agentorgs
+spec:
+  channels:
+    - provider: matrix
+      config:
+        name: e2e-team-matrix
+        key: userId
+  members:
+    - who: { kind: Member, name: lead }
+      role: Leader
+    - who: { kind: Member, name: worker }
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Collaboration
+metadata:
+  name: mention-group-leader
+  namespace: agentorgs
+spec:
+  participants:
+    - who: { kind: Member, name: requester }
+    - who: { kind: Group, name: e2e-team }
+  channel:
+    provider: matrix
+    config:
+      name: mention-group-leader-channel
+      key: roomId
+  whenTargetIsGroup:
+    strategy: Leader
+  limits:
+    maxReplyRounds: 6
+    timeoutMinutes: 15
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: mention-group-leader-start
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: requester
+  to:
+    - kind: Group
+      name: e2e-team
+  actions: [Start, Continue, Cancel]
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: e2e-lead-to-worker
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: lead
+  to:
+    - kind: Member
+      name: worker
+  actions: [Start, Continue]

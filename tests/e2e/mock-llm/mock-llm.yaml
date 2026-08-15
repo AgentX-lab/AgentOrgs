@@ -16,6 +16,50 @@ data:
       chunkSize: 8
       chunkIntervalMs: 10
     rules:
+      # Group e2e mock peer-@ path: worker sees E2E_PEER_TASK first (history may also contain E2E_GROUP_TASK).
+      - path: "/v1/chat/completions"
+        method: "POST"
+        match: "E2E_PEER_TASK"
+        response:
+          status: 200
+          content: |
+            {
+              "id": "chatcmpl-agentorgs-e2e-peer",
+              "object": "chat.completion",
+              "created": 0,
+              "model": "gpt-4o-mini",
+              "choices": [{
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "agentorgs-e2e-peer-ok"
+                },
+                "finish_reason": "stop"
+              }],
+              "usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
+            }
+      # Lead sees human E2E_GROUP_TASK and returns a visible @ of worker.
+      - path: "/v1/chat/completions"
+        method: "POST"
+        match: "E2E_GROUP_TASK"
+        response:
+          status: 200
+          content: |
+            {
+              "id": "chatcmpl-agentorgs-e2e-group",
+              "object": "chat.completion",
+              "created": 0,
+              "model": "gpt-4o-mini",
+              "choices": [{
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "@worker:matrix-local.agentorgs.io E2E_PEER_TASK please handle"
+                },
+                "finish_reason": "stop"
+              }],
+              "usage": {"prompt_tokens": 8, "completion_tokens": 8, "total_tokens": 16}
+            }
       - path: "/v1/chat/completions"
         method: "POST"
         match: "@"

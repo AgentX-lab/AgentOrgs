@@ -14,17 +14,9 @@ type ConfigRef struct {
 	Key  string `json:"key,omitempty"` // key inside the ConfigMap
 }
 
-// CredentialRef points to a Secret key.
-// +kubebuilder:object:generate=true
-type CredentialRef struct {
-	Name string `json:"name"`          // Secret name
-	Key  string `json:"key,omitempty"` // key inside the Secret
-}
-
 // ProviderBinding selects an external provider implementation.
 // +kubebuilder:object:generate=true
 type ProviderBinding struct {
-	Provider   string         `json:"provider"`             // provider name, e.g. openclaw / matrix / minio
-	Config     ConfigRef      `json:"config"`               // provider config in a ConfigMap
-	Credential *CredentialRef `json:"credential,omitempty"` // optional secret
+	Provider string    `json:"provider"` // provider name, e.g. openclaw / matrix / minio
+	Config   ConfigRef `json:"config"`   // provider config in a ConfigMap
 }

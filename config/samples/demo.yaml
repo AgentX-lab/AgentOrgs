@@ -114,6 +114,7 @@ metadata:
 spec:
   displayName: Backend Engineer 1
   type: Agent
+  skillPack: backend
   image: agentorgs/agent-openclaw:local
   runtime:
     provider: openclaw
@@ -137,6 +138,7 @@ metadata:
 spec:
   displayName: Backend Engineer 2
   type: Agent
+  skillPack: backend
   image: agentorgs/agent-openclaw:local
   runtime:
     provider: openclaw
@@ -160,6 +162,7 @@ metadata:
 spec:
   displayName: QA Engineer 1
   type: Agent
+  skillPack: qa
   image: agentorgs/agent-openclaw:local
   runtime:
     provider: openclaw
@@ -183,6 +186,7 @@ metadata:
 spec:
   displayName: QA Engineer 2
   type: Agent
+  skillPack: qa
   image: agentorgs/agent-openclaw:local
   runtime:
     provider: openclaw
@@ -206,6 +210,7 @@ metadata:
 spec:
   displayName: Architect
   type: Agent
+  skillPack: coordination
   image: agentorgs/agent-openclaw:local
   runtime:
     provider: openclaw
@@ -227,7 +232,6 @@ metadata:
   name: backend-team
   namespace: agentorgs
 spec:
-  displayName: Backend Team
   channels:
     - provider: matrix
       config:
@@ -249,7 +253,6 @@ metadata:
   name: qa-team
   namespace: agentorgs
 spec:
-  displayName: QA Team
   channels:
     - provider: matrix
       config:
@@ -275,32 +278,22 @@ spec:
     - who:
         kind: Member
         name: product-owner
-      role: Requester
     - who:
         kind: Group
         name: backend-team
-      role: Assignee
     - who:
         kind: Group
         name: qa-team
-      role: Assignee
     - who:
         kind: Member
         name: architect
-      role: Reviewer
   channel:
     provider: matrix
     config:
       name: cross-team-channel
       key: roomId
-  allowStartFrom:
-    - Member
   whenTargetIsGroup:
     strategy: All
-  expectedResult:
-    mustHave:
-      - status
-      - summary
   limits:
     maxReplyRounds: 10
     timeoutMinutes: 30
@@ -311,7 +304,6 @@ metadata:
   name: cross-team-start
   namespace: agentorgs
 spec:
-  priority: 10
   effect: Allow
   from:
     - kind: Member

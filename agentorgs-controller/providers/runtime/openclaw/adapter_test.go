@@ -34,7 +34,7 @@ func (s *workspaceStorage) WriteEvent(context.Context, protocol.CollaborationEve
 func (s *workspaceStorage) ListEvents(context.Context, string, string) ([]protocol.CollaborationEvent, error) {
 	return nil, nil
 }
-func (s *workspaceStorage) EnsureMemberWorkspace(context.Context, string, string, string) error {
+func (s *workspaceStorage) EnsureMemberWorkspace(context.Context, string, string, string, string, []string) error {
 	return nil
 }
 func (s *workspaceStorage) GetWorkspaceFile(_ context.Context, namespace, memberName, relativePath string) ([]byte, error) {

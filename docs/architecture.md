@@ -49,10 +49,9 @@ source
 targets
 status
 payload
-artifactRefs
 ```
 
-The selected pattern defines the structure of `payload`. The Collaboration Engine accepts a result only after it passes validation. Natural-language messages and artifact contents remain unrestricted.
+The selected pattern defines the structure of `payload`. The Collaboration Engine accepts a result only after it passes validation. Natural-language messages remain unrestricted.
 
 ## Main Flow
 

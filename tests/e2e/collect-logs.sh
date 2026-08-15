@@ -63,7 +63,7 @@ if [ "$POD_COUNT" -eq 0 ]; then
 fi
 
 # Useful config snapshots for Matrix e2e debugging.
-kubectl -n "$NAMESPACE" get configmap e2e-channel -o yaml >"${OUT_DIR}/e2e-channel.yaml" 2>&1 || true
+kubectl -n "$NAMESPACE" get configmap mention-group-leader-channel -o yaml >"${OUT_DIR}/mention-group-leader-channel.yaml" 2>&1 || true
 kubectl -n "$NAMESPACE" get members.agentorgs.io,collaborations.agentorgs.io,policies.agentorgs.io -o yaml \
   >"${OUT_DIR}/agentorgs-crs.yaml" 2>&1 || true
 

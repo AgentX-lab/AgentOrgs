@@ -30,18 +30,3 @@ func ReadConfigMapKey(ctx context.Context, c client.Client, namespace, name, key
 	}
 	return "", nil
 }
-
-// ReadSecretKey reads one key from a Secret.
-func ReadSecretKey(ctx context.Context, c client.Client, namespace, name, key string) (string, error) {
-	if name == "" || key == "" {
-		return "", nil
-	}
-	var sec corev1.Secret
-	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &sec); err != nil {
-		return "", err
-	}
-	if sec.Data == nil {
-		return "", nil
-	}
-	return string(sec.Data[key]), nil
-}

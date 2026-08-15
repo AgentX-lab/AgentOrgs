@@ -61,16 +61,6 @@ spec:
                       required:
                       - name
                       type: object
-                    credential:
-                      description: CredentialRef points to a Secret key.
-                      properties:
-                        key:
-                          type: string
-                        name:
-                          type: string
-                      required:
-                      - name
-                      type: object
                     provider:
                       type: string
                   required:
@@ -85,16 +75,6 @@ spec:
                 properties:
                   config:
                     description: ConfigRef points to a ConfigMap key.
-                    properties:
-                      key:
-                        type: string
-                      name:
-                        type: string
-                    required:
-                    - name
-                    type: object
-                  credential:
-                    description: CredentialRef points to a Secret key.
                     properties:
                       key:
                         type: string
@@ -124,22 +104,23 @@ spec:
                     required:
                     - name
                     type: object
-                  credential:
-                    description: CredentialRef points to a Secret key.
-                    properties:
-                      key:
-                        type: string
-                      name:
-                        type: string
-                    required:
-                    - name
-                    type: object
                   provider:
                     type: string
                 required:
                 - config
                 - provider
                 type: object
+              skillPack:
+                description: |-
+                  SkillPack is a builtin craft preset (e.g. coordination, backend). Expands to multiple skills.
+                  Independent of Group.members.role (collaboration role).
+                type: string
+              skills:
+                description: Skills lists extra builtin skill names beyond the pack
+                  (incremental, not a full inventory).
+                items:
+                  type: string
+                type: array
               type:
                 description: MemberType says what kind of participant this is.
                 type: string
@@ -156,17 +137,12 @@ spec:
                 description: MemberConnections records the live provider instances
                   for this Member.
                 properties:
-                  channels:
-                    items:
-                      type: string
-                    type: array
                   execution:
                     type: string
                   runtime:
                     type: string
                 type: object
               matrixUserId:
-                description: resolved Matrix MXID for @mentions
                 type: string
               phase:
                 description: MemberPhase is the current state of a Member.

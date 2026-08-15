@@ -1,4 +1,4 @@
-.PHONY: build build-controller build-cli build-agent-openclaw test generate controller-gen local-k8s-up local-k8s-down demo-apply e2e-matrix
+.PHONY: build build-controller build-cli build-agent-openclaw test generate controller-gen local-k8s-up local-k8s-down demo-apply e2e
 
 CONTROLLER_DIR := agentorgs-controller
 OPENCLAW_AGENT_IMAGE ?= agentorgs/agent-openclaw:local
@@ -41,7 +41,7 @@ local-k8s-down:
 demo-apply:
 	kubectl apply -f config/samples/demo.yaml
 
-# Kind e2e: shell bootstraps cluster; Go asserts workspace + Matrix reply.
+# Kind e2e: Group Leader mention (fixtures/mention_group_leader.yaml).
 # mock-llm is e2e-only under tests/e2e/.
-e2e-matrix:
+e2e:
 	bash tests/e2e/run.sh

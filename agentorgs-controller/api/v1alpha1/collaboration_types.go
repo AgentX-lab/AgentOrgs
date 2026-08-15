@@ -17,14 +17,6 @@ const (
 	CollaborationPhaseInvalid CollaborationPhase = "Invalid" // config has errors
 )
 
-// StartFrom says who is allowed to start a collaboration run.
-type StartFrom string
-
-const (
-	StartFromMember   StartFrom = "Member"   // a human or agent starts it
-	StartFromSchedule StartFrom = "Schedule" // a timer starts it
-)
-
 // GroupTargetStrategy says how to pick members when the target is a Group.
 type GroupTargetStrategy string
 
@@ -37,20 +29,13 @@ const (
 
 // CollaborationParticipant is one Member or Group in this Collaboration.
 type CollaborationParticipant struct {
-	Who  ObjectRef `json:"who"`            // which Member or Group
-	Role string    `json:"role,omitempty"` // role inside this Collaboration
+	Who ObjectRef `json:"who"` // which Member or Group
 }
 
 // WhenTargetIsGroup controls member selection for Group targets.
 type WhenTargetIsGroup struct {
 	Strategy GroupTargetStrategy `json:"strategy"`
 	Role     string              `json:"role,omitempty"`
-}
-
-// ExpectedResult lists fields that a collaboration result should include.
-type ExpectedResult struct {
-	MustHave []string `json:"mustHave,omitempty"`
-	MayHave  []string `json:"mayHave,omitempty"`
 }
 
 type CollaborationLimits struct {
@@ -63,9 +48,7 @@ type CollaborationLimits struct {
 type CollaborationSpec struct {
 	Participants      []CollaborationParticipant `json:"participants,omitempty"`      // who can take part
 	Channel           ProviderBinding            `json:"channel,omitempty"`           // communication channel
-	AllowStartFrom    []StartFrom                `json:"allowStartFrom,omitempty"`    // who may start a run
 	WhenTargetIsGroup WhenTargetIsGroup          `json:"whenTargetIsGroup,omitempty"` // how to pick Group targets
-	ExpectedResult    ExpectedResult             `json:"expectedResult,omitempty"`    // required result fields
 	Limits            CollaborationLimits        `json:"limits,omitempty"`            // round and time limits
 }
 
@@ -95,8 +78,8 @@ type Collaboration struct {
 // +kubebuilder:object:root=true
 
 type CollaborationList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ListMeta   `json:"metadata,omitempty"`
 	Items           []Collaboration `json:"items"`
 }
 

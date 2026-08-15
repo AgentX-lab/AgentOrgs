@@ -47,27 +47,11 @@ spec:
           spec:
             description: CollaborationSpec is what the user configures for a Collaboration.
             properties:
-              allowStartFrom:
-                items:
-                  description: StartFrom says who is allowed to start a collaboration
-                    run.
-                  type: string
-                type: array
               channel:
                 description: ProviderBinding selects an external provider implementation.
                 properties:
                   config:
                     description: ConfigRef points to a ConfigMap key.
-                    properties:
-                      key:
-                        type: string
-                      name:
-                        type: string
-                    required:
-                    - name
-                    type: object
-                  credential:
-                    description: CredentialRef points to a Secret key.
                     properties:
                       key:
                         type: string
@@ -82,19 +66,6 @@ spec:
                 - config
                 - provider
                 type: object
-              expectedResult:
-                description: ExpectedResult lists fields that a collaboration result
-                  should include.
-                properties:
-                  mayHave:
-                    items:
-                      type: string
-                    type: array
-                  mustHave:
-                    items:
-                      type: string
-                    type: array
-                type: object
               limits:
                 properties:
                   maxReplyRounds:
@@ -107,8 +78,6 @@ spec:
                   description: CollaborationParticipant is one Member or Group in
                     this Collaboration.
                   properties:
-                    role:
-                      type: string
                     who:
                       description: ObjectRef points to another AgentOrgs resource
                         in the same namespace.

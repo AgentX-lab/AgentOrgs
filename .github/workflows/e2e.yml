@@ -1,4 +1,4 @@
-name: e2e-matrix
+name: e2e
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  matrix-openclaw:
+  e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
           go-version: "1.23.x"
           cache-dependency-path: tests/e2e/go.sum
 
-      - name: Run Matrix OpenClaw e2e
+      - name: Run e2e
         env:
           AGENTORGS_CLUSTER_NAME: agentorgs-e2e
         run: |
@@ -48,5 +48,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-matrix-logs
+          name: e2e-logs
           path: /tmp/e2e-logs

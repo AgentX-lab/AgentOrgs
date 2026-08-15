@@ -22,12 +22,11 @@ type ExecutionInstanceRef struct {
 // EventHandler receives inbound collaboration events from a provider.
 type EventHandler func(ctx context.Context, event protocol.CollaborationEvent) error
 
-// RuntimeAdapter configures an agent runtime and delivers collaboration events.
+// RuntimeAdapter configures an agent runtime for a Member.
 type RuntimeAdapter interface {
 	Name() string
 	Apply(ctx context.Context, member MemberContext) error
 	Delete(ctx context.Context, member MemberContext) error
-	SendRequest(ctx context.Context, member MemberContext, event protocol.CollaborationEvent) error
 }
 
 // ExecutionBackend creates and deletes member runtime environments.
@@ -51,8 +50,8 @@ type StorageProvider interface {
 	ReadRun(ctx context.Context, namespace, runID string) (protocol.CollaborationRun, error)
 	WriteEvent(ctx context.Context, event protocol.CollaborationEvent) error
 	ListEvents(ctx context.Context, namespace, runID string) ([]protocol.CollaborationEvent, error)
-	// EnsureMemberWorkspace creates the default persona/skills/config objects when missing.
-	EnsureMemberWorkspace(ctx context.Context, namespace, memberName, displayName string) error
+	// EnsureMemberWorkspace creates default persona/config and skillPack skills when missing.
+	EnsureMemberWorkspace(ctx context.Context, namespace, memberName, displayName, skillPack string, extraSkills []string) error
 	// GetWorkspaceFile reads one file from a Member workspace (relative path, e.g. "openclaw.json").
 	GetWorkspaceFile(ctx context.Context, namespace, memberName, relativePath string) ([]byte, error)
 	// PutWorkspaceFile writes one file into a Member workspace.
