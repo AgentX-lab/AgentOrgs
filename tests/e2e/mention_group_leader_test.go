@@ -24,9 +24,11 @@ func TestMentionGroupLeader(t *testing.T) {
 	ctx := context.Background()
 	roomID := waitMentionGroupLeaderReady(t, e)
 
-	t.Run("workspace_soul_and_skills_differ", func(t *testing.T) {
+	if !t.Run("workspace_soul_and_skills_differ", func(t *testing.T) {
 		assertDistinctWorkspaces(t, e)
-	})
+	}) {
+		return
+	}
 
 	requesterTok, err := secretString(ctx, cs, e.Namespace, "matrix-requester", "accessToken")
 	if err != nil {
@@ -51,7 +53,7 @@ func TestMentionGroupLeader(t *testing.T) {
 		t.Fatalf("human @Group: %v", err)
 	}
 
-	t.Run("only_lead_after_at_group", func(t *testing.T) {
+	if !t.Run("only_lead_after_at_group", func(t *testing.T) {
 		waitUntil(t, stepTimeout, "lead reply after @Group", func(ctx context.Context) (bool, error) {
 			events, err := reqMX.recentMessages(ctx, roomID)
 			if err != nil {
@@ -66,7 +68,9 @@ func TestMentionGroupLeader(t *testing.T) {
 		if senderMessageCount(events, e.WorkerMXID) > workerBeforeGroup {
 			t.Fatal("worker replied after @Group; want lead only")
 		}
-	})
+	}) {
+		return
+	}
 
 	eventsAfterLead, err := reqMX.recentMessages(ctx, roomID)
 	if err != nil {
@@ -79,7 +83,7 @@ func TestMentionGroupLeader(t *testing.T) {
 		t.Fatalf("lead @worker: %v", err)
 	}
 
-	t.Run("worker_after_lead_mention", func(t *testing.T) {
+	if !t.Run("worker_after_lead_mention", func(t *testing.T) {
 		waitUntil(t, stepTimeout, "worker reply after lead @", func(ctx context.Context) (bool, error) {
 			events, err := reqMX.recentMessages(ctx, roomID)
 			if err != nil {
@@ -88,7 +92,9 @@ func TestMentionGroupLeader(t *testing.T) {
 			return senderMessageCount(events, e.WorkerMXID) > workerCountBefore &&
 				senderHasText(events, e.WorkerMXID, e.ExpectedText), nil
 		})
-	})
+	}) {
+		return
+	}
 
 	workerMid, err := reqMX.recentMessages(ctx, roomID)
 	if err != nil {
@@ -100,7 +106,7 @@ func TestMentionGroupLeader(t *testing.T) {
 		t.Fatalf("lead plain: %v", err)
 	}
 
-	t.Run("worker_silent_without_mention", func(t *testing.T) {
+	if !t.Run("worker_silent_without_mention", func(t *testing.T) {
 		deadline := time.Now().Add(45 * time.Second)
 		for time.Now().Before(deadline) {
 			events, err := reqMX.recentMessages(ctx, roomID)
@@ -112,7 +118,9 @@ func TestMentionGroupLeader(t *testing.T) {
 			}
 			time.Sleep(3 * time.Second)
 		}
-	})
+	}) {
+		return
+	}
 
 	beforePeer, err := reqMX.recentMessages(ctx, roomID)
 	if err != nil {
@@ -129,7 +137,7 @@ func TestMentionGroupLeader(t *testing.T) {
 		t.Fatalf("human @Group for mock peer: %v", err)
 	}
 
-	t.Run("lead_posts_worker_mention", func(t *testing.T) {
+	if !t.Run("lead_posts_worker_mention", func(t *testing.T) {
 		waitUntil(t, stepTimeout, "lead message mentions worker", func(ctx context.Context) (bool, error) {
 			events, err := reqMX.recentMessages(ctx, roomID)
 			if err != nil {
@@ -145,9 +153,11 @@ func TestMentionGroupLeader(t *testing.T) {
 			}
 			return false, nil
 		})
-	})
+	}) {
+		return
+	}
 
-	t.Run("worker_peer_ok", func(t *testing.T) {
+	if !t.Run("worker_peer_ok", func(t *testing.T) {
 		waitUntil(t, stepTimeout, "worker peer-ok reply", func(ctx context.Context) (bool, error) {
 			events, err := reqMX.recentMessages(ctx, roomID)
 			if err != nil {
@@ -161,7 +171,9 @@ func TestMentionGroupLeader(t *testing.T) {
 			}
 			return n > peerOKBefore, nil
 		})
-	})
+	}) {
+		return
+	}
 }
 
 func assertDistinctWorkspaces(t *testing.T, e env) {
