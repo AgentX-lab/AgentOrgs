@@ -137,8 +137,6 @@ func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName,
 	matrix["homeserver"] = a.Config.MatrixHomeserver
 	matrix["userId"] = userID
 	matrix["accessToken"] = token
-	// Top-level flag for Hermes bridge; OpenClaw uses groups[*] / groups[roomId].
-	matrix["requireMention"] = true
 	// Collaboration rooms are group chats; allow invited rooms and require @mention.
 	matrix["groupPolicy"] = "open"
 	groups := map[string]interface{}{
