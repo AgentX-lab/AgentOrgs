@@ -80,6 +80,11 @@ log "starting background push every ${SYNC_INTERVAL}s"
       --exclude "*.lock"; then
       log "WARNING: push to MinIO failed; will retry"
     fi
+    # Persist Hermes native memory files only; leave sessions, .env, and config.yaml local.
+    if [ -d "${HERMES_HOME}/memories" ]; then
+      mc mirror "${HERMES_HOME}/memories/" "${REMOTE_PREFIX}/.hermes/memories/" --overwrite || \
+        log "WARNING: push Hermes memories/ failed"
+    fi
   done
 ) &
 PUSH_PID=$!

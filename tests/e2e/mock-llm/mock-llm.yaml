@@ -88,6 +88,109 @@ data:
               }],
               "usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
             }
+      # OpenClaw lead: write MEMORY.md via the write tool.
+      - path: "/v1/chat/completions"
+        method: "POST"
+        match: "contains(to_string(body), 'E2E_MEMORY_LEAD')"
+        response:
+          status: 200
+          content: |
+            {
+              "id": "chatcmpl-agentorgs-e2e-oc-mem",
+              "object": "chat.completion",
+              "created": 0,
+              "model": "gpt-4o-mini",
+              "choices": [{
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": null,
+                  "tool_calls": [{
+                    "id": "call_e2e_oc_mem",
+                    "type": "function",
+                    "function": {
+                      "name": "write",
+                      "arguments": "{\"path\":\"MEMORY.md\",\"content\":\"E2E_MEMORY_LEAD\"}"
+                    }
+                  }]
+                },
+                "finish_reason": "tool_calls"
+              }],
+              "usage": {"prompt_tokens": 8, "completion_tokens": 8, "total_tokens": 16}
+            }
+      # Hermes worker: persist via the native memory tool.
+      - path: "/v1/chat/completions"
+        method: "POST"
+        match: "contains(to_string(body), 'E2E_MEMORY_WORKER')"
+        response:
+          status: 200
+          content: |
+            {
+              "id": "chatcmpl-agentorgs-e2e-hm-mem",
+              "object": "chat.completion",
+              "created": 0,
+              "model": "gpt-4o-mini",
+              "choices": [{
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": null,
+                  "tool_calls": [{
+                    "id": "call_e2e_hm_mem",
+                    "type": "function",
+                    "function": {
+                      "name": "memory",
+                      "arguments": "{\"action\":\"add\",\"target\":\"memory\",\"content\":\"E2E_MEMORY_WORKER\"}"
+                    }
+                  }]
+                },
+                "finish_reason": "tool_calls"
+              }],
+              "usage": {"prompt_tokens": 8, "completion_tokens": 8, "total_tokens": 16}
+            }
+      # After the runtime executes the tool, finish the turn (must stay last among memory rules).
+      - path: "/v1/chat/completions"
+        method: "POST"
+        match: "contains(to_string(body), 'call_e2e_oc_mem')"
+        response:
+          status: 200
+          content: |
+            {
+              "id": "chatcmpl-agentorgs-e2e-oc-mem-done",
+              "object": "chat.completion",
+              "created": 0,
+              "model": "gpt-4o-mini",
+              "choices": [{
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "agentorgs-e2e-memory-ok"
+                },
+                "finish_reason": "stop"
+              }],
+              "usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
+            }
+      - path: "/v1/chat/completions"
+        method: "POST"
+        match: "contains(to_string(body), 'call_e2e_hm_mem')"
+        response:
+          status: 200
+          content: |
+            {
+              "id": "chatcmpl-agentorgs-e2e-hm-mem-done",
+              "object": "chat.completion",
+              "created": 0,
+              "model": "gpt-4o-mini",
+              "choices": [{
+                "index": 0,
+                "message": {
+                  "role": "assistant",
+                  "content": "agentorgs-e2e-memory-ok"
+                },
+                "finish_reason": "stop"
+              }],
+              "usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
+            }
       - path: "/v1/models"
         method: "GET"
         match: "@"

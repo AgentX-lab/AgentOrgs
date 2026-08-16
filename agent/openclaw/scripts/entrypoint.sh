@@ -68,6 +68,8 @@ log "starting background push every ${SYNC_INTERVAL}s"
 (
   while true; do
     sleep "${SYNC_INTERVAL}"
+    # MEMORY.md and memory/ stay in the workspace tree and are pushed.
+    # .openclaw sessions / Matrix state stay local.
     if ! mc mirror "${WORKSPACE_DIR}/" "${REMOTE_PREFIX}/" --overwrite \
       --exclude ".openclaw/matrix/**" \
       --exclude ".openclaw/agents/**" \

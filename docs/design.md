@@ -84,22 +84,22 @@ This boundary keeps the organization model independent of any particular agent r
 
 ## Workspace, Memory, and Collaboration State
 
-These three concerns stay separate. Mixing them creates high coupling and makes providers hard to replace.
+Workspace files and collaboration state stay separate. Memory uses each runtime's own files inside the Member workspace. There is no separate `MemoryProvider` for MVP.
 
 | Concern | What it holds | Who owns it | First provider |
 |---|---|---|---|
-| Workspace | identity and tools for one Member: persona (`SOUL.md` / `AGENTS.md`), skills, runtime config (`openclaw.json`), work artifacts | `StorageProvider` | MinIO prefix `members/<name>/` |
-| Long-term memory | durable facts, preferences, and recallable experience | `MemoryProvider` (pluggable) | optional later (e.g. Mem0); not required for MVP |
+| Workspace | identity and tools for one Member: persona (`SOUL.md` / `AGENTS.md`), skills, runtime config (`openclaw.json`), work artifacts, runtime memory files | `StorageProvider` | MinIO prefix `members/<name>/` |
+| Long-term memory | durable facts, preferences, and recallable experience | same Member workspace | OpenClaw: `MEMORY.md`, `memory/`; Hermes: `.hermes/memories/MEMORY.md`, `.hermes/memories/USER.md` |
 | Collaboration state | runs, events, and collaboration artifacts | `StorageProvider` (separate keys/prefix) | MinIO prefix for runs/events |
 
 Rules:
 
-1. Object storage is a workspace and collaboration ledger, not a memory engine.
-2. A memory engine does not store persona files or skills.
-3. Persona and skills belong to the Member workspace. They are not baked into the agent image.
-4. Each runtime has its own agent image (e.g. `agent/openclaw`, later `agent/hermes`). Images share MinIO workspace sync ideas but do not share one generic entrypoint.
-5. On start, the OpenClaw agent pulls its workspace. While running, it pushes workspace changes back. Memory read/write goes through `MemoryProvider`, not ad-hoc files in MinIO.
-6. OpenClaw local sessions are runtime-only. They are not the system of record for organization memory.
+1. Long-term memory is the runtime's own files in the Member workspace. Do not add a separate memory engine for MVP.
+2. Persona, skills, and memory files belong to the Member workspace. They are not baked into the agent image.
+3. Each runtime has its own agent image (e.g. `agent/openclaw`, `agent/hermes`). Images share MinIO workspace sync ideas but do not share one generic entrypoint.
+4. On start, the agent pulls its workspace, including memory files. While running, it pushes workspace changes back.
+5. Local sessions (OpenClaw `.openclaw/` state, Hermes sessions / `.env` / generated config) are runtime-only. They are not organization memory and are not the system of record.
+6. Memory is per Member. It is not shared across Members.
 7. Controller calls `StorageProvider.EnsureMemberWorkspace` before starting an Agent Member Pod. Existing workspaces are not overwritten.
 
 ### Runtime agent images

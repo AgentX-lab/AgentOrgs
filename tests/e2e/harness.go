@@ -169,6 +169,34 @@ func kubectlExec(ns, pod string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
+func waitPodFileContains(t *testing.T, ns, pod, path, marker string) {
+	t.Helper()
+	waitUntil(t, stepTimeout, pod+" "+path, func(context.Context) (bool, error) {
+		out, err := kubectlExec(ns, pod, "cat", path)
+		if err != nil {
+			return false, nil
+		}
+		return strings.Contains(out, marker), nil
+	})
+}
+
+func minioMemberObject(ns, member, relative string) string {
+	alias := getenv("AGENTORGS_MINIO_ALIAS", "agentorgs")
+	bucket := getenv("AGENTORGS_MINIO_BUCKET", "agentorgs")
+	return fmt.Sprintf("%s/%s/%s/members/%s/%s", alias, bucket, ns, member, strings.TrimPrefix(relative, "/"))
+}
+
+func waitMinioObjectContains(t *testing.T, ns, pod, object, marker string) {
+	t.Helper()
+	waitUntil(t, 2*time.Minute, object+" in minio", func(context.Context) (bool, error) {
+		out, err := kubectlExec(ns, pod, "mc", "cat", object)
+		if err != nil {
+			return false, nil
+		}
+		return strings.Contains(out, marker), nil
+	})
+}
+
 func kubectlPatchCollaborationStrategy(ns, name, strategy string) error {
 	patch := fmt.Sprintf(`{"spec":{"whenTargetIsGroup":{"strategy":%q}}}`, strategy)
 	cmd := exec.Command("kubectl", "-n", ns, "patch", "collaboration", name, "--type=merge", "-p", patch)

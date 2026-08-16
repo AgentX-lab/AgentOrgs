@@ -13,13 +13,15 @@ import (
 )
 
 // TestMentionGroupLeader covers Leader-mode @ semantics and craft workspaces:
-//  lead=openclaw, worker=hermes (mixed runtimes).
-//  0. lead/worker SOUL differ; skill packs differ (coordination vs backend)
-//  1. human @Group → only lead replies (worker silent)
-//  2. test sends visible @worker as lead → worker replies
-//  3. lead plain text (no @) → worker stays silent
-//  4. human @Group with E2E_GROUP_TASK → mock-llm makes lead @worker → worker peer-ok
-//  5. All + @Group -@lead → dispatch intent keeps worker only
+//
+//	lead=openclaw, worker=hermes (mixed runtimes).
+//	0. lead/worker SOUL differ; skill packs differ (coordination vs backend)
+//	1. human @Group → only lead replies (worker silent)
+//	2. test sends visible @worker as lead → worker replies
+//	3. lead plain text (no @) → worker stays silent
+//	4. human @Group with E2E_GROUP_TASK → mock-llm makes lead @worker → worker peer-ok
+//	5. All + @Group -@lead → dispatch intent keeps worker only
+//	6. OpenClaw/Hermes memory tools write files that then appear in MinIO (last: session history)
 func TestMentionGroupLeader(t *testing.T) {
 	e := loadEnv()
 	cs := kubeClient(t)
@@ -217,6 +219,13 @@ func TestMentionGroupLeader(t *testing.T) {
 	}) {
 		return
 	}
+
+	// Last: memory markers stay in session history and would steal later mock-llm matches.
+	if !t.Run("runtime_memory_syncs_to_minio", func(t *testing.T) {
+		assertRuntimeMemorySyncs(t, e, reqMX, roomID)
+	}) {
+		return
+	}
 }
 
 func assertDistinctWorkspaces(t *testing.T, e env) {
@@ -259,6 +268,27 @@ func assertDistinctWorkspaces(t *testing.T, e env) {
 	if strings.Contains(workerSkills, "team-coordination") {
 		t.Fatalf("worker should not have team-coordination, got: %s", workerSkills)
 	}
+}
+
+func assertRuntimeMemorySyncs(t *testing.T, e env, reqMX *matrixClient, roomID string) {
+	t.Helper()
+	ctx := context.Background()
+	const (
+		leadMarker   = "E2E_MEMORY_LEAD"
+		workerMarker = "E2E_MEMORY_WORKER"
+	)
+
+	if err := reqMX.sendMention(ctx, roomID, leadMarker+" persist this fact", []string{e.LeadMXID}); err != nil {
+		t.Fatalf("mention lead for memory: %v", err)
+	}
+	waitPodFileContains(t, e.Namespace, "member-lead", "/workspace/MEMORY.md", leadMarker)
+	waitMinioObjectContains(t, e.Namespace, "member-lead", minioMemberObject(e.Namespace, "lead", "MEMORY.md"), leadMarker)
+
+	if err := reqMX.sendMention(ctx, roomID, workerMarker+" persist this fact", []string{e.WorkerMXID}); err != nil {
+		t.Fatalf("mention worker for memory: %v", err)
+	}
+	waitPodFileContains(t, e.Namespace, "member-worker", "/workspace/.hermes/memories/MEMORY.md", workerMarker)
+	waitMinioObjectContains(t, e.Namespace, "member-worker", minioMemberObject(e.Namespace, "worker", ".hermes/memories/MEMORY.md"), workerMarker)
 }
 
 func waitMentionGroupLeaderReady(t *testing.T, e env) string {
