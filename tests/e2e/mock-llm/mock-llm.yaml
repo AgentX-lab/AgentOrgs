@@ -15,6 +15,7 @@ data:
     #
     # match is JMESPath (not substring). "@" always matches.
     # Among matching rules, the LAST one wins — put specifics after the default.
+    # Prefer contains(to_string(body), '...') so OpenClaw-wrapped prompts still match.
     streaming:
       chunkSize: 8
       chunkIntervalMs: 10
@@ -41,10 +42,12 @@ data:
               }],
               "usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
             }
-      # Lead: last user/turn text contains E2E_GROUP_TASK → post visible @worker + peer marker.
+      # Lead: any request body containing E2E_GROUP_TASK → post visible @worker + peer marker.
+      # OpenClaw may put the Matrix text outside messages[-1].content (wrapped / non-string),
+      # so match the whole body via to_string.
       - path: "/v1/chat/completions"
         method: "POST"
-        match: "contains(body.messages[-1].content, 'E2E_GROUP_TASK')"
+        match: "contains(to_string(body), 'E2E_GROUP_TASK')"
         response:
           status: 200
           content: |
@@ -63,10 +66,10 @@ data:
               }],
               "usage": {"prompt_tokens": 8, "completion_tokens": 8, "total_tokens": 16}
             }
-      # Worker: last turn contains E2E_PEER_TASK → peer-ok (after GROUP so peer wins if both appear).
+      # Worker: any body with E2E_PEER_TASK → peer-ok (after GROUP so peer wins if both appear).
       - path: "/v1/chat/completions"
         method: "POST"
-        match: "contains(body.messages[-1].content, 'E2E_PEER_TASK')"
+        match: "contains(to_string(body), 'E2E_PEER_TASK')"
         response:
           status: 200
           content: |
