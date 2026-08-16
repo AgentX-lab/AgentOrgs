@@ -32,6 +32,16 @@ type env struct {
 	PeerOKText   string
 }
 
+// swarmEnv is the flat All-strategy e2e org (peer-a / peer-b / swarm-team).
+type swarmEnv struct {
+	Namespace    string
+	MatrixURL    string
+	PeerAMXID    string
+	PeerBMXID    string
+	GroupMXID    string
+	ExpectedText string
+}
+
 const stepTimeout = 5 * time.Minute
 
 func loadEnv() env {
@@ -45,6 +55,19 @@ func loadEnv() env {
 		GroupMXID:    "@e2e-team:" + domain,
 		ExpectedText: getenv("AGENTORGS_E2E_EXPECTED_TEXT", "agentorgs-e2e-ok"),
 		PeerOKText:   getenv("AGENTORGS_E2E_PEER_OK_TEXT", "agentorgs-e2e-peer-ok"),
+	}
+}
+
+func loadSwarmEnv() swarmEnv {
+	ns := getenv("AGENTORGS_NAMESPACE", "agentorgs")
+	domain := getenv("AGENTORGS_MATRIX_DOMAIN", "matrix-local.agentorgs.io")
+	return swarmEnv{
+		Namespace:    ns,
+		MatrixURL:    strings.TrimRight(getenv("AGENTORGS_MATRIX_URL", "http://127.0.0.1:18080"), "/"),
+		PeerAMXID:    "@peer-a:" + domain,
+		PeerBMXID:    "@peer-b:" + domain,
+		GroupMXID:    "@swarm-team:" + domain,
+		ExpectedText: getenv("AGENTORGS_E2E_EXPECTED_TEXT", "agentorgs-e2e-ok"),
 	}
 }
 

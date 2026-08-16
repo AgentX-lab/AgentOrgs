@@ -1,4 +1,4 @@
-name: e2e
+name: e2e-swarm
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  e2e:
+  e2e-swarm:
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
@@ -28,9 +28,12 @@ jobs:
           go-version: "1.23.x"
           cache-dependency-path: tests/e2e/go.sum
 
-      - name: Run e2e
+      - name: Run swarm e2e
         env:
-          AGENTORGS_CLUSTER_NAME: agentorgs-e2e
+          AGENTORGS_CLUSTER_NAME: agentorgs-e2e-swarm
+          AGENTORGS_E2E_FIXTURE: fixtures/mention_group_swarm.yaml
+          AGENTORGS_E2E_RUN: TestMentionGroupSwarm
+          AGENTORGS_E2E_CHANNEL_CM: mention-group-swarm-channel
         run: |
           chmod +x tests/e2e/run.sh
           bash tests/e2e/run.sh
@@ -38,9 +41,9 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         env:
-          AGENTORGS_CLUSTER_NAME: agentorgs-e2e
+          AGENTORGS_CLUSTER_NAME: agentorgs-e2e-swarm
           AGENTORGS_NAMESPACE: agentorgs
-          AGENTORGS_E2E_CHANNEL_CM: mention-group-leader-channel
+          AGENTORGS_E2E_CHANNEL_CM: mention-group-swarm-channel
         run: |
           chmod +x tests/e2e/collect-logs.sh
           bash tests/e2e/collect-logs.sh /tmp/e2e-logs
@@ -49,5 +52,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-logs
+          name: e2e-swarm-logs
           path: /tmp/e2e-logs

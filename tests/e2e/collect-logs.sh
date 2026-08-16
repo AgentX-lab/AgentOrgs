@@ -63,14 +63,15 @@ if [ "$POD_COUNT" -eq 0 ]; then
 fi
 
 # Useful config snapshots for Matrix e2e debugging.
-kubectl -n "$NAMESPACE" get configmap mention-group-leader-channel -o yaml >"${OUT_DIR}/mention-group-leader-channel.yaml" 2>&1 || true
+CHANNEL_CM="${AGENTORGS_E2E_CHANNEL_CM:-mention-group-leader-channel}"
+kubectl -n "$NAMESPACE" get configmap "$CHANNEL_CM" -o yaml >"${OUT_DIR}/${CHANNEL_CM}.yaml" 2>&1 || true
 kubectl -n "$NAMESPACE" get members.agentorgs.io,collaborations.agentorgs.io,policies.agentorgs.io -o yaml \
   >"${OUT_DIR}/agentorgs-crs.yaml" 2>&1 || true
 
 # Room transcript (sender/body/mentions) via Matrix Client-Server API.
 MATRIX_URL="${AGENTORGS_MATRIX_URL:-http://127.0.0.1:18080}"
 MATRIX_URL="${MATRIX_URL%/}"
-ROOM_ID="$(kubectl -n "$NAMESPACE" get configmap mention-group-leader-channel -o jsonpath='{.data.roomId}' 2>/dev/null || true)"
+ROOM_ID="$(kubectl -n "$NAMESPACE" get configmap "$CHANNEL_CM" -o jsonpath='{.data.roomId}' 2>/dev/null || true)"
 TOKEN="$(kubectl -n "$NAMESPACE" get secret matrix-requester -o jsonpath='{.data.accessToken}' 2>/dev/null | base64 -d 2>/dev/null || true)"
 {
   echo "matrix_url=${MATRIX_URL}"

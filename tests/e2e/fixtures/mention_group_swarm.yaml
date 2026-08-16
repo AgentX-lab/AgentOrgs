@@ -1,0 +1,204 @@
+# E2E ONLY — mention_group_swarm: flat peers, whenTargetIsGroup=All.
+# @Group wakes every member; peers can @ each other (no Leader role).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentorgs
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mention-group-swarm-channel
+  namespace: agentorgs
+data:
+  roomId: "!mention-group-swarm-placeholder:example.org"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-runtime
+  namespace: agentorgs
+data:
+  runtime: openclaw
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-execution
+  namespace: agentorgs
+data:
+  image: agentorgs/agent-openclaw:local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: requester-matrix
+  namespace: agentorgs
+data:
+  userId: "@requester:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: peer-a-matrix
+  namespace: agentorgs
+data:
+  userId: "@peer-a:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: peer-b-matrix
+  namespace: agentorgs
+data:
+  userId: "@peer-b:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swarm-team-matrix
+  namespace: agentorgs
+data:
+  userId: "@swarm-team:matrix-local.agentorgs.io"
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: requester
+  namespace: agentorgs
+spec:
+  displayName: E2E Swarm Requester
+  type: Human
+  channels:
+    - provider: matrix
+      config:
+        name: requester-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: peer-a
+  namespace: agentorgs
+spec:
+  displayName: E2E Swarm Peer A
+  type: Agent
+  skillPack: backend
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: peer-a-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: peer-b
+  namespace: agentorgs
+spec:
+  displayName: E2E Swarm Peer B
+  type: Agent
+  skillPack: qa
+  image: agentorgs/agent-openclaw:local
+  runtime:
+    provider: openclaw
+    config:
+      name: openclaw-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: openclaw-execution
+  channels:
+    - provider: matrix
+      config:
+        name: peer-b-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Group
+metadata:
+  name: swarm-team
+  namespace: agentorgs
+spec:
+  channels:
+    - provider: matrix
+      config:
+        name: swarm-team-matrix
+        key: userId
+  members:
+    - who: { kind: Member, name: peer-a }
+    - who: { kind: Member, name: peer-b }
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Collaboration
+metadata:
+  name: mention-group-swarm
+  namespace: agentorgs
+spec:
+  participants:
+    - who: { kind: Member, name: requester }
+    - who: { kind: Group, name: swarm-team }
+  channel:
+    provider: matrix
+    config:
+      name: mention-group-swarm-channel
+      key: roomId
+  whenTargetIsGroup:
+    strategy: All
+  limits:
+    maxReplyRounds: 6
+    timeoutMinutes: 15
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: mention-group-swarm-start
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: requester
+  to:
+    - kind: Group
+      name: swarm-team
+  actions: [Start, Continue, Cancel]
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: e2e-swarm-peer-a-to-b
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: peer-a
+  to:
+    - kind: Member
+      name: peer-b
+  actions: [Start, Continue]
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Policy
+metadata:
+  name: e2e-swarm-peer-b-to-a
+  namespace: agentorgs
+spec:
+  effect: Allow
+  from:
+    - kind: Member
+      name: peer-b
+  to:
+    - kind: Member
+      name: peer-a
+  actions: [Start, Continue]
