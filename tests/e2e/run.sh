@@ -66,7 +66,11 @@ log "ensuring namespace"
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
 log "applying e2e-only mock-llm"
+kubectl -n "$NAMESPACE" create configmap mock-llm-config \
+  --from-file=server.py="${SCRIPT_DIR}/mock-llm/server.py" \
+  --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f "${SCRIPT_DIR}/mock-llm/mock-llm.yaml"
+kubectl -n "$NAMESPACE" rollout restart deployment/mock-llm
 kubectl -n "$NAMESPACE" rollout status deployment/mock-llm --timeout=180s
 
 log "installing helm chart (LLM base URL -> in-cluster mock-llm)"
