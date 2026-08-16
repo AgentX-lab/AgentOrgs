@@ -52,7 +52,11 @@ func (a *Adapter) Apply(ctx context.Context, member provider.MemberContext) erro
 		// Matrix Setup has not created credentials yet; reconcile again later.
 		return fmt.Errorf("matrix credentials for member %q are not ready", member.Name)
 	}
-	return a.writeMatrixChannel(ctx, member.Namespace, member.Name, userID, token)
+	roomIDs, err := a.collaborationRoomIDsForMember(ctx, member.Namespace, member.Name)
+	if err != nil {
+		return err
+	}
+	return a.writeMatrixChannel(ctx, member.Namespace, member.Name, userID, token, roomIDs)
 }
 
 func (a *Adapter) Delete(_ context.Context, _ provider.MemberContext) error {
@@ -76,7 +80,9 @@ func (a *Adapter) readMatrixCredentials(ctx context.Context, namespace, memberNa
 
 // writeMatrixChannel merges Matrix settings into workspace openclaw.json.
 // Field names match OpenClaw / AgentTeams (homeserver, userId, accessToken).
-func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName, userID, token string) error {
+// roomIDs are exact channels.matrix.groups keys so OpenClaw does not treat
+// collaboration rooms as DMs (wildcard "*" alone cannot override DM class).
+func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName, userID, token string, roomIDs []string) error {
 	raw, err := a.Storage.GetWorkspaceFile(ctx, namespace, memberName, openclawConfigFile)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", openclawConfigFile, err)
@@ -127,13 +133,17 @@ func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName,
 	matrix["accessToken"] = token
 	// Collaboration rooms are group chats; allow invited rooms and require @mention.
 	matrix["groupPolicy"] = "open"
-	matrix["groups"] = map[string]interface{}{
+	groups := map[string]interface{}{
 		"*": map[string]interface{}{"requireMention": true},
 	}
+	for _, roomID := range roomIDs {
+		groups[roomID] = map[string]interface{}{"requireMention": true}
+	}
+	matrix["groups"] = groups
 	matrix["autoJoin"] = "allowlist"
 	matrix["autoJoinAllowlist"] = []string{"*"}
-	// dmPolicy=open without allowFrom=["*"] drops every DM. Two-member
-	// collaboration rooms are classified as DMs by OpenClaw.
+	// dmPolicy=open without allowFrom=["*"] drops every DM. Exact groups[roomId]
+	// entries force collaboration rooms out of DM classification.
 	matrix["dm"] = map[string]interface{}{"policy": "open", "allowFrom": []string{"*"}}
 	// ClusterIP / private homeserver hosts fail OpenClaw SSRF checks otherwise.
 	matrix["network"] = map[string]interface{}{

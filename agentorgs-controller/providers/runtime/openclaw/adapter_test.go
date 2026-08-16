@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/api/v1alpha1"
@@ -51,9 +52,16 @@ func (s *workspaceStorage) PutWorkspaceFile(_ context.Context, namespace, member
 	return nil
 }
 
-func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
+func testScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
+	return scheme
+}
+
+func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
+	scheme := testScheme(t)
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "matrix-be-1", Namespace: "agentorgs"},
 		Data: map[string][]byte{
@@ -105,6 +113,11 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 	if matrix["groupPolicy"] != "open" {
 		t.Fatalf("groupPolicy=%v", matrix["groupPolicy"])
 	}
+	groups := matrix["groups"].(map[string]interface{})
+	star := groups["*"].(map[string]interface{})
+	if star["requireMention"] != true {
+		t.Fatalf("groups[*].requireMention=%v", star["requireMention"])
+	}
 	dm := matrix["dm"].(map[string]interface{})
 	if dm["policy"] != "open" {
 		t.Fatalf("dm.policy=%v", dm["policy"])
@@ -137,6 +150,116 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 	entries := plugins["entries"].(map[string]interface{})
 	if entries["matrix"].(map[string]interface{})["enabled"] != true {
 		t.Fatalf("plugins.entries.matrix=%v", entries["matrix"])
+	}
+}
+
+func TestApplyWritesExactCollaborationRoomRequireMention(t *testing.T) {
+	scheme := testScheme(t)
+	const roomID = "!real-collab:matrix-local.agentorgs.io"
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "matrix-worker", Namespace: "agentorgs"},
+		Data: map[string][]byte{
+			"userId":      []byte("@worker:matrix-local.agentorgs.io"),
+			"accessToken": []byte("tok-worker"),
+		},
+	}
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "work-channel", Namespace: "agentorgs"},
+		Data:       map[string]string{"roomId": roomID},
+	}
+	member := &v1alpha1.Member{
+		ObjectMeta: metav1.ObjectMeta{Name: "worker", Namespace: "agentorgs"},
+		Spec: v1alpha1.MemberSpec{
+			Channels: []v1alpha1.ProviderBinding{{Provider: "matrix"}},
+		},
+	}
+	collab := &v1alpha1.Collaboration{
+		ObjectMeta: metav1.ObjectMeta{Name: "work", Namespace: "agentorgs"},
+		Spec: v1alpha1.CollaborationSpec{
+			Participants: []v1alpha1.CollaborationParticipant{
+				{Who: v1alpha1.ObjectRef{Kind: v1alpha1.MemberKind, Name: "worker"}},
+			},
+			Channel: v1alpha1.ProviderBinding{
+				Provider: "matrix",
+				Config:   v1alpha1.ConfigRef{Name: "work-channel", Key: "roomId"},
+			},
+		},
+	}
+	k8s := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret, cm, member, collab).Build()
+	storage := &workspaceStorage{files: map[string][]byte{
+		"agentorgs/worker/openclaw.json": []byte(`{"channels":{"matrix":{"enabled":false}}}`),
+	}}
+	adapter := openclawadapter.NewAdapter(config.Config{MatrixHomeserver: "http://hs"}, storage, k8s)
+
+	if err := adapter.Apply(context.Background(), provider.MemberContext{
+		Namespace: "agentorgs",
+		Name:      "worker",
+		Spec:      member.Spec,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	raw := storage.files["agentorgs/worker/openclaw.json"]
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(raw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	groups := cfg["channels"].(map[string]interface{})["matrix"].(map[string]interface{})["groups"].(map[string]interface{})
+	if groups["*"].(map[string]interface{})["requireMention"] != true {
+		t.Fatalf("missing wildcard requireMention: %v", groups)
+	}
+	room := groups[roomID].(map[string]interface{})
+	if room["requireMention"] != true {
+		t.Fatalf("exact room requireMention=%v groups=%v", room["requireMention"], groups)
+	}
+}
+
+func TestApplyWaitsForCollaborationRoom(t *testing.T) {
+	scheme := testScheme(t)
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "matrix-worker", Namespace: "agentorgs"},
+		Data: map[string][]byte{
+			"userId":      []byte("@worker:matrix-local.agentorgs.io"),
+			"accessToken": []byte("tok-worker"),
+		},
+	}
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "work-channel", Namespace: "agentorgs"},
+		Data:       map[string]string{"roomId": "!placeholder:example.org"},
+	}
+	member := &v1alpha1.Member{
+		ObjectMeta: metav1.ObjectMeta{Name: "worker", Namespace: "agentorgs"},
+	}
+	collab := &v1alpha1.Collaboration{
+		ObjectMeta: metav1.ObjectMeta{Name: "work", Namespace: "agentorgs"},
+		Spec: v1alpha1.CollaborationSpec{
+			Participants: []v1alpha1.CollaborationParticipant{
+				{Who: v1alpha1.ObjectRef{Kind: v1alpha1.MemberKind, Name: "worker"}},
+			},
+			Channel: v1alpha1.ProviderBinding{
+				Provider: "matrix",
+				Config:   v1alpha1.ConfigRef{Name: "work-channel", Key: "roomId"},
+			},
+		},
+	}
+	k8s := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret, cm, member, collab).Build()
+	storage := &workspaceStorage{files: map[string][]byte{
+		"agentorgs/worker/openclaw.json": []byte(`{}`),
+	}}
+	adapter := openclawadapter.NewAdapter(config.Config{}, storage, k8s)
+
+	err := adapter.Apply(context.Background(), provider.MemberContext{
+		Namespace: "agentorgs",
+		Name:      "worker",
+		Spec: v1alpha1.MemberSpec{
+			Channels: []v1alpha1.ProviderBinding{{Provider: "matrix"}},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected wait for room")
+	}
+	if !strings.Contains(err.Error(), "not ready") {
+		t.Fatalf("err=%v", err)
 	}
 }
 
