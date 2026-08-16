@@ -1,5 +1,5 @@
 # E2E ONLY — do not use in production or local demos with real workloads.
-# ConfigMap mock-llm-config is created from server.py in run.sh (SSE tool_calls).
+# Image is built and kind-loaded by tests/e2e/run.sh as agentorgs/mock-llm:local.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,36 +21,23 @@ spec:
     spec:
       containers:
         - name: mock-llm
-          image: python:3.12-alpine
-          imagePullPolicy: IfNotPresent
-          command: ["python3", "/app/server.py"]
+          image: agentorgs/mock-llm:local
+          imagePullPolicy: Never
           ports:
             - name: http
               containerPort: 6556
-          volumeMounts:
-            - name: config
-              mountPath: /app/server.py
-              subPath: server.py
-              readOnly: true
           readinessProbe:
             httpGet:
               path: /ready
               port: http
-            initialDelaySeconds: 2
-            periodSeconds: 5
+            initialDelaySeconds: 1
+            periodSeconds: 3
           livenessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
-      volumes:
-        - name: config
-          configMap:
-            name: mock-llm-config
-            items:
-              - key: server.py
-                path: server.py
 ---
 apiVersion: v1
 kind: Service

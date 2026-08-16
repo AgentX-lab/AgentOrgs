@@ -62,15 +62,16 @@ if [ "$SKIP_BUILD" = "0" ]; then
   kind load docker-image "$HERMES_AGENT_IMAGE" --name "$CLUSTER_NAME"
 fi
 
+MOCK_LLM_IMAGE="agentorgs/mock-llm:local"
+log "building mock-llm"
+docker build -t "$MOCK_LLM_IMAGE" -f "${SCRIPT_DIR}/mock-llm/Dockerfile" "${SCRIPT_DIR}/mock-llm"
+kind load docker-image "$MOCK_LLM_IMAGE" --name "$CLUSTER_NAME"
+
 log "ensuring namespace"
 kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
 log "applying e2e-only mock-llm"
-kubectl -n "$NAMESPACE" create configmap mock-llm-config \
-  --from-file=server.py="${SCRIPT_DIR}/mock-llm/server.py" \
-  --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f "${SCRIPT_DIR}/mock-llm/mock-llm.yaml"
-kubectl -n "$NAMESPACE" rollout restart deployment/mock-llm
 kubectl -n "$NAMESPACE" rollout status deployment/mock-llm --timeout=180s
 
 log "installing helm chart (LLM base URL -> in-cluster mock-llm)"
@@ -87,6 +88,11 @@ helm upgrade --install agentorgs "${PROJECT_ROOT}/charts/agentorgs" \
 
 log "applying CRDs + e2e fixture ${E2E_FIXTURE}"
 kubectl apply -f "${PROJECT_ROOT}/config/crd/"
+kubectl wait --for=condition=Established --timeout=60s \
+  crd/collaborations.agentorgs.io \
+  crd/groups.agentorgs.io \
+  crd/members.agentorgs.io \
+  crd/policies.agentorgs.io
 kubectl apply -f "${SCRIPT_DIR}/${E2E_FIXTURE}"
 
 log "waiting for controller"
