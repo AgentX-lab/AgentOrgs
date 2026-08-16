@@ -104,7 +104,7 @@ data:
                 "index": 0,
                 "message": {
                   "role": "assistant",
-                  "content": null,
+                  "content": "",
                   "tool_calls": [{
                     "id": "call_e2e_oc_mem",
                     "type": "function",
@@ -134,7 +134,7 @@ data:
                 "index": 0,
                 "message": {
                   "role": "assistant",
-                  "content": null,
+                  "content": "",
                   "tool_calls": [{
                     "id": "call_e2e_hm_mem",
                     "type": "function",
