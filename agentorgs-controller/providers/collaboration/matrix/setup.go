@@ -9,6 +9,7 @@ import (
 
 	agentorgsv1alpha1 "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/api/v1alpha1"
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/internal/config"
+	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/internal/organization"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,9 @@ func NewSetup(cfg config.Config, k8s client.Client, api *Client) *Setup {
 	return &Setup{Config: cfg, K8s: k8s, API: api}
 }
 
-// EnsureReady runs first-time Matrix setup for the configured namespace.
+// EnsureReady bootstraps Matrix identities and keeps Collaboration rooms in
+// sync with current participants. Existing rooms are reused; members added
+// to a Group later are invited into those rooms.
 func (s *Setup) EnsureReady(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("matrix-setup")
 	if !s.Config.MatrixBootstrapEnabled {
@@ -55,7 +58,8 @@ func (s *Setup) EnsureReady(ctx context.Context) error {
 		return err
 	}
 
-	invite := []string{}
+	memberMXID := map[string]string{}
+	groupMXID := map[string]string{}
 	for i := range members.Items {
 		m := &members.Items[i]
 		localpart, userID := s.readMatrixUserFromChannels(ctx, m.Name, m.Spec.Channels)
@@ -67,7 +71,7 @@ func (s *Setup) EnsureReady(ctx context.Context) error {
 			logger.Error(err, "ensure member matrix user", "member", m.Name)
 			continue
 		}
-		invite = append(invite, userID)
+		memberMXID[m.Name] = userID
 		_ = s.saveAccessTokenSecret(ctx, ns, m.Name, userID, token)
 		if m.Status.MatrixUserID != userID {
 			m.Status.MatrixUserID = userID
@@ -85,7 +89,7 @@ func (s *Setup) EnsureReady(ctx context.Context) error {
 			logger.Error(err, "ensure group matrix user", "group", g.Name)
 			continue
 		}
-		invite = append(invite, userID)
+		groupMXID[g.Name] = userID
 		_ = s.saveAccessTokenSecret(ctx, ns, "group-"+g.Name, userID, token)
 		if g.Status.MatrixUserID != userID {
 			g.Status.MatrixUserID = userID
@@ -98,43 +102,60 @@ func (s *Setup) EnsureReady(ctx context.Context) error {
 		return fmt.Errorf("room operator token: %w", err)
 	}
 
-	for _, c := range collabs.Items {
+	resolver := organization.NewResolver(members.Items, groups.Items)
+	for i := range collabs.Items {
+		c := &collabs.Items[i]
 		if c.Spec.Channel.Provider != "" && c.Spec.Channel.Provider != providerName {
 			continue
 		}
+		invite := collaborationInviteUserIDs(*c, resolver, memberMXID, groupMXID)
 		cmName := c.Spec.Channel.Config.Name
 		cmKey := c.Spec.Channel.Config.Key
 		if cmKey == "" {
 			cmKey = "roomId"
 		}
-		existing, _ := ReadConfigMapKey(ctx, s.K8s, ns, cmName, cmKey)
-		if isFakeOrEmptyRoomID(existing) {
-			existing = ""
+		roomID, _ := ReadConfigMapKey(ctx, s.K8s, ns, cmName, cmKey)
+		if isFakeOrEmptyRoomID(roomID) {
+			roomID = ""
 		}
-		if existing != "" {
-			continue
-		}
-		alias := fmt.Sprintf("agentorgs-%s", c.Name)
-		roomID, err := s.API.CreateRoom(ctx, operatorToken, c.Name, alias, invite)
-		if err != nil {
-			logger.Error(err, "create collaboration room", "collaboration", c.Name)
-			continue
-		}
-		for _, userID := range invite {
-			_ = s.API.Invite(ctx, operatorToken, roomID, userID)
-			localpart := strings.TrimPrefix(strings.Split(userID, ":")[0], "@")
-			userToken, tokErr := s.ensureMatrixUser(ctx, localpart)
-			if tokErr == nil {
-				_ = s.API.JoinRoom(ctx, userToken, roomID)
+		if roomID == "" {
+			alias := fmt.Sprintf("agentorgs-%s", c.Name)
+			created, createErr := s.API.CreateRoom(ctx, operatorToken, c.Name, alias, invite)
+			if createErr != nil {
+				logger.Error(createErr, "create collaboration room", "collaboration", c.Name)
+				continue
+			}
+			roomID = created
+			if err := s.upsertConfigMapKey(ctx, ns, cmName, cmKey, roomID); err != nil {
+				logger.Error(err, "write roomId", "configmap", cmName)
+			} else {
+				logger.Info("collaboration room ready", "collaboration", c.Name, "roomID", roomID)
 			}
 		}
-		if err := s.upsertConfigMapKey(ctx, ns, cmName, cmKey, roomID); err != nil {
-			logger.Error(err, "write roomId", "configmap", cmName)
-		} else {
-			logger.Info("collaboration room ready", "collaboration", c.Name, "roomID", roomID)
-		}
+		s.syncRoomMembers(ctx, operatorToken, roomID, invite)
 	}
 	return nil
+}
+
+// syncRoomMembers invites current participants into an existing room and joins
+// them. Already-in-room Matrix errors are ignored so Group membership can grow
+// without recreating the Collaboration room.
+func (s *Setup) syncRoomMembers(ctx context.Context, operatorToken, roomID string, userIDs []string) {
+	logger := log.FromContext(ctx).WithName("matrix-setup")
+	for _, userID := range userIDs {
+		if err := s.API.Invite(ctx, operatorToken, roomID, userID); err != nil && !alreadyInRoomError(err) {
+			logger.Error(err, "invite to collaboration room", "roomID", roomID, "userID", userID)
+		}
+		localpart := strings.TrimPrefix(strings.Split(userID, ":")[0], "@")
+		userToken, tokErr := s.ensureMatrixUser(ctx, localpart)
+		if tokErr != nil {
+			logger.Error(tokErr, "token for join", "userID", userID)
+			continue
+		}
+		if err := s.API.JoinRoom(ctx, userToken, roomID); err != nil && !alreadyInRoomError(err) {
+			logger.Error(err, "join collaboration room", "roomID", roomID, "userID", userID)
+		}
+	}
 }
 
 func isFakeOrEmptyRoomID(roomID string) bool {

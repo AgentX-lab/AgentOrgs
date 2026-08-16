@@ -1,5 +1,7 @@
-# E2E ONLY — mention_group_swarm: flat peers, whenTargetIsGroup=All.
-# @Group wakes every member; peers can @ each other (no Leader role).
+# E2E ONLY — two Groups, two Collaborations (two rooms), strategy All.
+# mixed-team = openclaw + hermes; hermes-team = two hermes.
+# Room A (mention-group-swarm): both Groups, for mixed-oc @hermes-team.
+# Room B (mention-group-hermes): hermes-team only, for roster change.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -12,6 +14,14 @@ metadata:
   namespace: agentorgs
 data:
   roomId: "!mention-group-swarm-placeholder:example.org"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mention-group-hermes-channel
+  namespace: agentorgs
+data:
+  roomId: "!mention-group-hermes-placeholder:example.org"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -32,6 +42,22 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: hermes-runtime
+  namespace: agentorgs
+data:
+  runtime: hermes
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-execution
+  namespace: agentorgs
+data:
+  image: agentorgs/agent-hermes:local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: requester-matrix
   namespace: agentorgs
 data:
@@ -40,26 +66,50 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: peer-a-matrix
+  name: mixed-oc-matrix
   namespace: agentorgs
 data:
-  userId: "@peer-a:matrix-local.agentorgs.io"
+  userId: "@mixed-oc:matrix-local.agentorgs.io"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: peer-b-matrix
+  name: mixed-hm-matrix
   namespace: agentorgs
 data:
-  userId: "@peer-b:matrix-local.agentorgs.io"
+  userId: "@mixed-hm:matrix-local.agentorgs.io"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: swarm-team-matrix
+  name: hermes-a-matrix
   namespace: agentorgs
 data:
-  userId: "@swarm-team:matrix-local.agentorgs.io"
+  userId: "@hermes-a:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-b-matrix
+  namespace: agentorgs
+data:
+  userId: "@hermes-b:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mixed-team-matrix
+  namespace: agentorgs
+data:
+  userId: "@mixed-team:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-team-matrix
+  namespace: agentorgs
+data:
+  userId: "@hermes-team:matrix-local.agentorgs.io"
 ---
 apiVersion: agentorgs.io/v1alpha1
 kind: Member
@@ -78,12 +128,12 @@ spec:
 apiVersion: agentorgs.io/v1alpha1
 kind: Member
 metadata:
-  name: peer-a
+  name: mixed-oc
   namespace: agentorgs
 spec:
-  displayName: E2E Swarm Peer A
+  displayName: E2E Mixed OpenClaw
   type: Agent
-  skillPack: backend
+  skillPack: coordination
   image: agentorgs/agent-openclaw:local
   runtime:
     provider: openclaw
@@ -96,47 +146,110 @@ spec:
   channels:
     - provider: matrix
       config:
-        name: peer-a-matrix
+        name: mixed-oc-matrix
         key: userId
 ---
 apiVersion: agentorgs.io/v1alpha1
 kind: Member
 metadata:
-  name: peer-b
+  name: mixed-hm
   namespace: agentorgs
 spec:
-  displayName: E2E Swarm Peer B
+  displayName: E2E Mixed Hermes
   type: Agent
-  skillPack: qa
-  image: agentorgs/agent-openclaw:local
+  skillPack: backend
+  image: agentorgs/agent-hermes:local
   runtime:
-    provider: openclaw
+    provider: hermes
     config:
-      name: openclaw-runtime
+      name: hermes-runtime
   execution:
     provider: kubernetes
     config:
-      name: openclaw-execution
+      name: hermes-execution
   channels:
     - provider: matrix
       config:
-        name: peer-b-matrix
+        name: mixed-hm-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: hermes-a
+  namespace: agentorgs
+spec:
+  displayName: E2E Hermes A
+  type: Agent
+  skillPack: qa
+  image: agentorgs/agent-hermes:local
+  runtime:
+    provider: hermes
+    config:
+      name: hermes-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: hermes-execution
+  channels:
+    - provider: matrix
+      config:
+        name: hermes-a-matrix
+        key: userId
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: hermes-b
+  namespace: agentorgs
+spec:
+  displayName: E2E Hermes B
+  type: Agent
+  skillPack: qa
+  image: agentorgs/agent-hermes:local
+  runtime:
+    provider: hermes
+    config:
+      name: hermes-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: hermes-execution
+  channels:
+    - provider: matrix
+      config:
+        name: hermes-b-matrix
         key: userId
 ---
 apiVersion: agentorgs.io/v1alpha1
 kind: Group
 metadata:
-  name: swarm-team
+  name: mixed-team
   namespace: agentorgs
 spec:
   channels:
     - provider: matrix
       config:
-        name: swarm-team-matrix
+        name: mixed-team-matrix
         key: userId
   members:
-    - who: { kind: Member, name: peer-a }
-    - who: { kind: Member, name: peer-b }
+    - who: { kind: Member, name: mixed-oc }
+    - who: { kind: Member, name: mixed-hm }
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Group
+metadata:
+  name: hermes-team
+  namespace: agentorgs
+spec:
+  channels:
+    - provider: matrix
+      config:
+        name: hermes-team-matrix
+        key: userId
+  members:
+    - who: { kind: Member, name: hermes-a }
+    - who: { kind: Member, name: hermes-b }
 ---
 apiVersion: agentorgs.io/v1alpha1
 kind: Collaboration
@@ -146,7 +259,8 @@ metadata:
 spec:
   participants:
     - who: { kind: Member, name: requester }
-    - who: { kind: Group, name: swarm-team }
+    - who: { kind: Group, name: mixed-team }
+    - who: { kind: Group, name: hermes-team }
   channel:
     provider: matrix
     config:
@@ -155,13 +269,33 @@ spec:
   whenTargetIsGroup:
     strategy: All
   limits:
-    maxReplyRounds: 6
+    maxReplyRounds: 8
+    timeoutMinutes: 15
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Collaboration
+metadata:
+  name: mention-group-hermes
+  namespace: agentorgs
+spec:
+  participants:
+    - who: { kind: Member, name: requester }
+    - who: { kind: Group, name: hermes-team }
+  channel:
+    provider: matrix
+    config:
+      name: mention-group-hermes-channel
+      key: roomId
+  whenTargetIsGroup:
+    strategy: All
+  limits:
+    maxReplyRounds: 8
     timeoutMinutes: 15
 ---
 apiVersion: agentorgs.io/v1alpha1
 kind: Policy
 metadata:
-  name: mention-group-swarm-start
+  name: e2e-swarm-requester-mixed
   namespace: agentorgs
 spec:
   effect: Allow
@@ -170,35 +304,35 @@ spec:
       name: requester
   to:
     - kind: Group
-      name: swarm-team
+      name: mixed-team
   actions: [Start, Continue, Cancel]
 ---
 apiVersion: agentorgs.io/v1alpha1
 kind: Policy
 metadata:
-  name: e2e-swarm-peer-a-to-b
+  name: e2e-swarm-requester-hermes
   namespace: agentorgs
 spec:
   effect: Allow
   from:
     - kind: Member
-      name: peer-a
+      name: requester
   to:
-    - kind: Member
-      name: peer-b
-  actions: [Start, Continue]
+    - kind: Group
+      name: hermes-team
+  actions: [Start, Continue, Cancel]
 ---
 apiVersion: agentorgs.io/v1alpha1
 kind: Policy
 metadata:
-  name: e2e-swarm-peer-b-to-a
+  name: e2e-swarm-mixed-to-hermes
   namespace: agentorgs
 spec:
   effect: Allow
   from:
-    - kind: Member
-      name: peer-b
+    - kind: Group
+      name: mixed-team
   to:
-    - kind: Member
-      name: peer-a
+    - kind: Group
+      name: hermes-team
   actions: [Start, Continue]

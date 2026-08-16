@@ -32,14 +32,17 @@ type env struct {
 	PeerOKText   string
 }
 
-// swarmEnv is the flat All-strategy e2e org (peer-a / peer-b / swarm-team).
+// swarmEnv is the two-Group All-strategy e2e org.
 type swarmEnv struct {
-	Namespace    string
-	MatrixURL    string
-	PeerAMXID    string
-	PeerBMXID    string
-	GroupMXID    string
-	ExpectedText string
+	Namespace      string
+	MatrixURL      string
+	MixedOCMXID    string
+	MixedHMMXID    string
+	HermesAMXID    string
+	HermesBMXID    string
+	MixedTeamMXID  string
+	HermesTeamMXID string
+	ExpectedText   string
 }
 
 const stepTimeout = 5 * time.Minute
@@ -62,12 +65,15 @@ func loadSwarmEnv() swarmEnv {
 	ns := getenv("AGENTORGS_NAMESPACE", "agentorgs")
 	domain := getenv("AGENTORGS_MATRIX_DOMAIN", "matrix-local.agentorgs.io")
 	return swarmEnv{
-		Namespace:    ns,
-		MatrixURL:    strings.TrimRight(getenv("AGENTORGS_MATRIX_URL", "http://127.0.0.1:18080"), "/"),
-		PeerAMXID:    "@peer-a:" + domain,
-		PeerBMXID:    "@peer-b:" + domain,
-		GroupMXID:    "@swarm-team:" + domain,
-		ExpectedText: getenv("AGENTORGS_E2E_EXPECTED_TEXT", "agentorgs-e2e-ok"),
+		Namespace:      ns,
+		MatrixURL:      strings.TrimRight(getenv("AGENTORGS_MATRIX_URL", "http://127.0.0.1:18080"), "/"),
+		MixedOCMXID:    "@mixed-oc:" + domain,
+		MixedHMMXID:    "@mixed-hm:" + domain,
+		HermesAMXID:    "@hermes-a:" + domain,
+		HermesBMXID:    "@hermes-b:" + domain,
+		MixedTeamMXID:  "@mixed-team:" + domain,
+		HermesTeamMXID: "@hermes-team:" + domain,
+		ExpectedText:   getenv("AGENTORGS_E2E_EXPECTED_TEXT", "agentorgs-e2e-ok"),
 	}
 }
 
@@ -208,6 +214,28 @@ func kubectlPatchCollaborationStrategy(ns, name, strategy string) error {
 	return nil
 }
 
+func kubectlReplaceGroupMembers(ns, name string, memberNames []string) error {
+	members := make([]map[string]interface{}, 0, len(memberNames))
+	for _, memberName := range memberNames {
+		members = append(members, map[string]interface{}{
+			"who": map[string]string{"kind": "Member", "name": memberName},
+		})
+	}
+	payload, err := json.Marshal(map[string]interface{}{
+		"spec": map[string]interface{}{"members": members},
+	})
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("kubectl", "-n", ns, "patch", "group", name, "--type=merge", "-p", string(payload))
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("kubectl patch group %s: %w (%s)", name, err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
+}
+
 type matrixClient struct {
 	base  string
 	token string
@@ -271,6 +299,26 @@ func senderMessageCount(events []matrixEvent, sender string) int {
 		}
 	}
 	return n
+}
+
+func (c *matrixClient) joinedMemberIDs(ctx context.Context, roomID string) (map[string]struct{}, error) {
+	path := fmt.Sprintf("/_matrix/client/v3/rooms/%s/joined_members", url.PathEscape(roomID))
+	var resp struct {
+		Joined map[string]json.RawMessage `json:"joined"`
+	}
+	if err := c.doJSON(ctx, http.MethodGet, path, nil, &resp); err != nil {
+		return nil, err
+	}
+	out := make(map[string]struct{}, len(resp.Joined))
+	for mxid := range resp.Joined {
+		out[mxid] = struct{}{}
+	}
+	return out, nil
+}
+
+func joinedHas(joined map[string]struct{}, mxid string) bool {
+	_, ok := joined[mxid]
+	return ok
 }
 
 func (c *matrixClient) recentMessages(ctx context.Context, roomID string) ([]matrixEvent, error) {

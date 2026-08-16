@@ -65,7 +65,7 @@ fi
 # Useful config snapshots for Matrix e2e debugging.
 CHANNEL_CM="${AGENTORGS_E2E_CHANNEL_CM:-mention-group-leader-channel}"
 kubectl -n "$NAMESPACE" get configmap "$CHANNEL_CM" -o yaml >"${OUT_DIR}/${CHANNEL_CM}.yaml" 2>&1 || true
-kubectl -n "$NAMESPACE" get members.agentorgs.io,collaborations.agentorgs.io,policies.agentorgs.io -o yaml \
+kubectl -n "$NAMESPACE" get members.agentorgs.io,groups.agentorgs.io,collaborations.agentorgs.io,policies.agentorgs.io -o yaml \
   >"${OUT_DIR}/agentorgs-crs.yaml" 2>&1 || true
 
 # Room transcript (sender/body/mentions) via Matrix Client-Server API.

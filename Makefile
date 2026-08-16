@@ -49,6 +49,7 @@ demo-apply:
 	kubectl apply -f config/samples/demo.yaml
 
 # Kind e2e: Group Leader mention (fixtures/mention_group_leader.yaml).
+# Swarm (two Groups / two rooms): AGENTORGS_E2E_FIXTURE=fixtures/mention_group_swarm.yaml AGENTORGS_E2E_RUN=TestMentionGroupSwarm
 # mock-llm is e2e-only under tests/e2e/.
 e2e:
 	bash tests/e2e/run.sh
