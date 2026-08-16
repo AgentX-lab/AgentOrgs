@@ -118,6 +118,9 @@ func TestApplyWritesMatrixIntoOpenClawJSON(t *testing.T) {
 	if star["requireMention"] != true {
 		t.Fatalf("groups[*].requireMention=%v", star["requireMention"])
 	}
+	if matrix["requireMention"] != true {
+		t.Fatalf("matrix.requireMention=%v", matrix["requireMention"])
+	}
 	dm := matrix["dm"].(map[string]interface{})
 	if dm["policy"] != "open" {
 		t.Fatalf("dm.policy=%v", dm["policy"])

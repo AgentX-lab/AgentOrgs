@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-worker"
+version = "0.1.0"
+description = "AgentOrgs Member runtime based on hermes-agent"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = [
+    "mautrix[encryption]",
+    "matrix-nio[e2e]>=0.24.0",
+    "markdown-it-py>=3.0",
+    "linkify-it-py>=2.0",
+    "Markdown>=3.6",
+    "typer>=0.9",
+    "rich>=13.0",
+    "httpx>=0.25",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+hermes-worker = "hermes_worker.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hermes_worker*", "hermes_matrix*"]

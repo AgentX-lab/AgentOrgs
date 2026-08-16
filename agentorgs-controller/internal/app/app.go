@@ -14,6 +14,7 @@ import (
 	"github.com/agentscope-ai/AgentOrgs/agentorgs-controller/pkg/provider"
 	matrixprovider "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/providers/collaboration/matrix"
 	k8sbackend "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/providers/execution/kubernetes"
+	hermesadapter "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/providers/runtime/hermes"
 	openclawadapter "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/providers/runtime/openclaw"
 	miniostore "github.com/agentscope-ai/AgentOrgs/agentorgs-controller/providers/storage/minio"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,10 +63,12 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("init storage provider: %w", err)
 	}
 	openclaw := openclawadapter.NewAdapter(cfg, storage, mgr.GetClient())
+	hermes := hermesadapter.NewAdapter(cfg, storage, mgr.GetClient())
 	matrix := matrixprovider.NewProvider(cfg, mgr.GetClient())
 
 	registry.RegisterExecution(k8sExec)
 	registry.RegisterRuntime(openclaw)
+	registry.RegisterRuntime(hermes)
 	registry.RegisterCollaboration(matrix)
 	registry.RegisterStorage(storage)
 

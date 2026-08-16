@@ -11,7 +11,7 @@ AgentOrgs 使用四种 Kubernetes 资源：`Member`、`Group`、`Collaboration` 
 - `CollaborationProvider`：传递协作事件和普通消息。
 - `StorageProvider`：保存 Member 工作区，以及协作状态（run、事件、产物）。
 - `MemoryProvider`：可选的长期记忆读写（不是工作区）。
-- 运行时镜像按 runtime 分开：`agent/openclaw`（已有），`agent/hermes`（预留）。
+- 运行时镜像按 runtime 分开：`agent/openclaw`、`agent/hermes`。
 
 ## 协作
 

@@ -13,6 +13,7 @@ import (
 )
 
 // TestMentionGroupLeader covers Leader-mode @ semantics and craft workspaces:
+//  lead=openclaw, worker=hermes (mixed runtimes).
 //  0. lead/worker SOUL differ; skill packs differ (coordination vs backend)
 //  1. human @Group → only lead replies (worker silent)
 //  2. test sends visible @worker as lead → worker replies

@@ -1,0 +1,50 @@
+# Minimal Hermes Member sample (apply after demo / Matrix stack is up).
+# Requires: make build-agent-hermes and AGENTORGS_HERMES_AGENT_IMAGE set on controller.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-dev-matrix
+  namespace: agentorgs
+data:
+  userId: "@hermes-dev:matrix-local.agentorgs.io"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-runtime
+  namespace: agentorgs
+data:
+  runtime: hermes
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-execution
+  namespace: agentorgs
+data:
+  image: agentorgs/agent-hermes:local
+---
+apiVersion: agentorgs.io/v1alpha1
+kind: Member
+metadata:
+  name: hermes-dev
+  namespace: agentorgs
+spec:
+  displayName: Hermes Dev
+  type: Agent
+  skillPack: backend
+  image: agentorgs/agent-hermes:local
+  runtime:
+    provider: hermes
+    config:
+      name: hermes-runtime
+  execution:
+    provider: kubernetes
+    config:
+      name: hermes-execution
+  channels:
+    - provider: matrix
+      config:
+        name: hermes-dev-matrix
+        key: userId

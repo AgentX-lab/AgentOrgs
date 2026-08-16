@@ -19,7 +19,7 @@ AgentOrgs combines a Kubernetes-native organization control plane with a Matrix-
 
 This model supports multiple independent teams and large agent deployments without requiring a fixed hierarchy. Matrix is the initial interaction layer, while AgentOrgs manages organization and collaboration independently of the communication implementation.
 
-The first version supports OpenClaw as the only agent runtime. Additional runtimes may be added later through Runtime Adapters.
+The first version supports OpenClaw and Hermes agent runtimes through Runtime Adapters.
 
 ## Member
 
@@ -109,7 +109,7 @@ Path layout:
 ```text
 agent/
 ├── openclaw/     # agentorgs/agent-openclaw
-└── hermes/       # future: agentorgs/agent-hermes
+└── hermes/       # agentorgs/agent-hermes
 ```
 
 Build OpenClaw image (default base: official `ghcr.io/openclaw/openclaw:latest`):
@@ -120,8 +120,15 @@ make build-agent-openclaw
 make build-agent-openclaw OPENCLAW_BASE_IMAGE=openclaw/openclaw:latest
 ```
 
-- Entrypoint is OpenClaw-specific: pull workspace, push loop, then `exec openclaw`.
-- Missing `openclaw` binary is a hard error.
+Build Hermes image:
+
+```bash
+make build-agent-hermes
+```
+
+- OpenClaw entrypoint: pull workspace, push loop, then `exec openclaw`.
+- Hermes entrypoint: pull workspace, bridge `openclaw.json` → `.hermes`, then `hermes-worker`.
+- Missing runtime binary is a hard error.
 - Execution backend selects image by `Member.spec.runtime.provider` (`openclaw` / `hermes`), or `Member.spec.image` override.
 
 This keeps Controller, Storage, Memory, Runtime, and Collaboration independently swappable through provider bindings.

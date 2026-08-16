@@ -1,4 +1,5 @@
 # E2E ONLY — mention_group_leader: requester + lead + worker, Group Leader mode.
+# lead = openclaw, worker = hermes (mixed runtimes).
 # @Group wakes lead only; lead can @ worker (token or mock-llm).
 # lead.skillPack=coordination, worker.skillPack=backend (craft ≠ Group.role).
 apiVersion: v1
@@ -29,6 +30,22 @@ metadata:
   namespace: agentorgs
 data:
   image: agentorgs/agent-openclaw:local
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-runtime
+  namespace: agentorgs
+data:
+  runtime: hermes
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-execution
+  namespace: agentorgs
+data:
+  image: agentorgs/agent-hermes:local
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -109,15 +126,15 @@ spec:
   displayName: E2E Backend Worker
   type: Agent
   skillPack: backend
-  image: agentorgs/agent-openclaw:local
+  image: agentorgs/agent-hermes:local
   runtime:
-    provider: openclaw
+    provider: hermes
     config:
-      name: openclaw-runtime
+      name: hermes-runtime
   execution:
     provider: kubernetes
     config:
-      name: openclaw-execution
+      name: hermes-execution
   channels:
     - provider: matrix
       config:

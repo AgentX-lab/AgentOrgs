@@ -41,6 +41,7 @@ fi
 CONTROLLER_IMAGE="agentorgs/controller:local"
 OPENCLAW_AGENT_IMAGE="${AGENTORGS_OPENCLAW_AGENT_IMAGE:-agentorgs/agent-openclaw:local}"
 OPENCLAW_BASE_IMAGE="${OPENCLAW_BASE_IMAGE:-ghcr.io/openclaw/openclaw:latest}"
+HERMES_AGENT_IMAGE="${AGENTORGS_HERMES_AGENT_IMAGE:-agentorgs/agent-hermes:local}"
 
 if [ "$SKIP_BUILD" = "0" ]; then
   log "building controller"
@@ -53,6 +54,12 @@ if [ "$SKIP_BUILD" = "0" ]; then
     --build-arg BASE_IMAGE="$OPENCLAW_BASE_IMAGE" \
     "${PROJECT_ROOT}/agent/openclaw"
   kind load docker-image "$OPENCLAW_AGENT_IMAGE" --name "$CLUSTER_NAME"
+
+  log "building hermes agent"
+  docker build -t "$HERMES_AGENT_IMAGE" \
+    -f "${PROJECT_ROOT}/agent/hermes/Dockerfile" \
+    "${PROJECT_ROOT}/agent/hermes"
+  kind load docker-image "$HERMES_AGENT_IMAGE" --name "$CLUSTER_NAME"
 fi
 
 log "ensuring namespace"
@@ -71,6 +78,7 @@ helm upgrade --install agentorgs "${PROJECT_ROOT}/charts/agentorgs" \
   --set controller.image.tag=local \
   --set controller.image.pullPolicy=Never \
   --set controller.openclawAgentImage="$OPENCLAW_AGENT_IMAGE" \
+  --set controller.hermesAgentImage="$HERMES_AGENT_IMAGE" \
   --wait --timeout 10m
 
 log "applying CRDs + e2e fixture ${E2E_FIXTURE}"

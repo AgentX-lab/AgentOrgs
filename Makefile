@@ -1,8 +1,9 @@
-.PHONY: build build-controller build-cli build-agent-openclaw test generate controller-gen local-k8s-up local-k8s-down demo-apply e2e
+.PHONY: build build-controller build-cli build-agent-openclaw build-agent-hermes test generate controller-gen local-k8s-up local-k8s-down demo-apply e2e
 
 CONTROLLER_DIR := agentorgs-controller
 OPENCLAW_AGENT_IMAGE ?= agentorgs/agent-openclaw:local
 OPENCLAW_BASE_IMAGE ?= ghcr.io/openclaw/openclaw:latest
+HERMES_AGENT_IMAGE ?= agentorgs/agent-hermes:local
 
 build: build-controller build-cli
 
@@ -18,6 +19,12 @@ build-agent-openclaw:
 		-f agent/openclaw/Dockerfile \
 		--build-arg BASE_IMAGE=$(OPENCLAW_BASE_IMAGE) \
 		agent/openclaw/
+
+# Hermes runtime image: hermes-agent + bridge + MinIO sync glue.
+build-agent-hermes:
+	docker build -t $(HERMES_AGENT_IMAGE) \
+		-f agent/hermes/Dockerfile \
+		agent/hermes/
 
 test:
 	cd $(CONTROLLER_DIR) && go test ./...

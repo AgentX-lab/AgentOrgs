@@ -36,6 +36,12 @@ func NewAdapter(cfg config.Config, storage provider.StorageProvider, k8s client.
 
 func (a *Adapter) Name() string { return providerName }
 
+// ApplyMemberWorkspace writes Matrix + model settings into openclaw.json.
+// Shared by the openclaw and hermes runtime adapters (Hermes bridges this file).
+func ApplyMemberWorkspace(ctx context.Context, cfg config.Config, storage provider.StorageProvider, k8s client.Client, member provider.MemberContext) error {
+	return NewAdapter(cfg, storage, k8s).Apply(ctx, member)
+}
+
 // Apply writes runtime config into the Member workspace (including Matrix channel when credentials exist).
 func (a *Adapter) Apply(ctx context.Context, member provider.MemberContext) error {
 	if a.Storage == nil {
@@ -131,6 +137,8 @@ func (a *Adapter) writeMatrixChannel(ctx context.Context, namespace, memberName,
 	matrix["homeserver"] = a.Config.MatrixHomeserver
 	matrix["userId"] = userID
 	matrix["accessToken"] = token
+	// Top-level flag for Hermes bridge; OpenClaw uses groups[*] / groups[roomId].
+	matrix["requireMention"] = true
 	// Collaboration rooms are group chats; allow invited rooms and require @mention.
 	matrix["groupPolicy"] = "open"
 	groups := map[string]interface{}{
