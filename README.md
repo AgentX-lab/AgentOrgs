@@ -21,16 +21,10 @@ This creates a kind cluster, installs Controller + MinIO + Matrix (Tuwunel), app
   --text "implement login API"
 ```
 
-## Project layout
+## Architecture
 
-```text
-agentorgs-controller/   Go controller, engine, providers
-config/crd/             Generated CRDs
-config/samples/         Demo Member/Group/Collaboration/Policy
-charts/agentorgs/       Helm chart
-hack/                   kind scripts
-docs/                   Design docs
-```
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/17825f30-4c6b-4430-9bc9-70a99d8a3131" />
+
 
 ## Build locally
 
@@ -48,15 +42,4 @@ make test
 
 Providers (OpenClaw, Kubernetes, Matrix, MinIO) are pluggable and configured through `ProviderBinding`.
 
-## Agent images
 
-Storage is MinIO for all runtimes. Each runtime has its own image under `agent/<runtime>/`.
-
-```bash
-make build-agent-openclaw
-# default base: ghcr.io/openclaw/openclaw:latest
-```
-
-Override base if needed: `OPENCLAW_BASE_IMAGE=openclaw/openclaw:latest make build-agent-openclaw`
-
-OpenClaw entrypoint requires the `openclaw` binary from the base image. Hermes will live at `agent/hermes/` later.
