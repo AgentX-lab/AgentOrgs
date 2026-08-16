@@ -12,19 +12,22 @@ data:
   mock-llm.yaml: |
     # OpenClaw sends stream:true; mock-llm turns this JSON into OpenAI SSE chunks
     # (data: {object:chat.completion.chunk} ... data: [DONE]).
+    #
+    # match is JMESPath (not substring). "@" always matches.
+    # Among matching rules, the LAST one wins — put specifics after the default.
     streaming:
       chunkSize: 8
       chunkIntervalMs: 10
     rules:
-      # Group e2e mock peer-@ path: worker sees E2E_PEER_TASK first (history may also contain E2E_GROUP_TASK).
+      # Default: any chat completion → short ack (first e2e @Group / @worker steps).
       - path: "/v1/chat/completions"
         method: "POST"
-        match: "E2E_PEER_TASK"
+        match: "@"
         response:
           status: 200
           content: |
             {
-              "id": "chatcmpl-agentorgs-e2e-peer",
+              "id": "chatcmpl-agentorgs-e2e",
               "object": "chat.completion",
               "created": 0,
               "model": "gpt-4o-mini",
@@ -32,16 +35,16 @@ data:
                 "index": 0,
                 "message": {
                   "role": "assistant",
-                  "content": "agentorgs-e2e-peer-ok"
+                  "content": "agentorgs-e2e-ok"
                 },
                 "finish_reason": "stop"
               }],
               "usage": {"prompt_tokens": 8, "completion_tokens": 4, "total_tokens": 12}
             }
-      # Lead sees human E2E_GROUP_TASK and returns a visible @ of worker.
+      # Lead: last user/turn text contains E2E_GROUP_TASK → post visible @worker + peer marker.
       - path: "/v1/chat/completions"
         method: "POST"
-        match: "E2E_GROUP_TASK"
+        match: "contains(body.messages[-1].content, 'E2E_GROUP_TASK')"
         response:
           status: 200
           content: |
@@ -60,14 +63,15 @@ data:
               }],
               "usage": {"prompt_tokens": 8, "completion_tokens": 8, "total_tokens": 16}
             }
+      # Worker: last turn contains E2E_PEER_TASK → peer-ok (after GROUP so peer wins if both appear).
       - path: "/v1/chat/completions"
         method: "POST"
-        match: "@"
+        match: "contains(body.messages[-1].content, 'E2E_PEER_TASK')"
         response:
           status: 200
           content: |
             {
-              "id": "chatcmpl-agentorgs-e2e",
+              "id": "chatcmpl-agentorgs-e2e-peer",
               "object": "chat.completion",
               "created": 0,
               "model": "gpt-4o-mini",
@@ -75,7 +79,7 @@ data:
                 "index": 0,
                 "message": {
                   "role": "assistant",
-                  "content": "agentorgs-e2e-ok"
+                  "content": "agentorgs-e2e-peer-ok"
                 },
                 "finish_reason": "stop"
               }],
