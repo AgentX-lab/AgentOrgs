@@ -173,10 +173,11 @@ class Handler(BaseHTTPRequestHandler):
         message = choice["message"]
         cid = completion["id"]
         tool_calls = message.get("tool_calls") or []
+        self.close_connection = True
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Connection", "keep-alive")
+        self.send_header("Connection", "close")
         self.end_headers()
         if tool_calls:
             self.wfile.write(sse_chunk(cid, {"role": "assistant"}, None))
