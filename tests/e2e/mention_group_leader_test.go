@@ -18,6 +18,7 @@ import (
 //  2. test sends visible @worker as lead → worker replies
 //  3. lead plain text (no @) → worker stays silent
 //  4. human @Group with E2E_GROUP_TASK → mock-llm makes lead @worker → worker peer-ok
+//  5. All + @Group -@lead → dispatch intent keeps worker only
 func TestMentionGroupLeader(t *testing.T) {
 	e := loadEnv()
 	cs := kubeClient(t)
@@ -171,6 +172,47 @@ func TestMentionGroupLeader(t *testing.T) {
 			}
 			return n > peerOKBefore, nil
 		})
+	}) {
+		return
+	}
+
+	if !t.Run("dispatch_intent_exclude_lead", func(t *testing.T) {
+		if err := kubectlPatchCollaborationStrategy(e.Namespace, "mention-group-leader", "All"); err != nil {
+			t.Fatalf("switch to All: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = kubectlPatchCollaborationStrategy(e.Namespace, "mention-group-leader", "Leader")
+		})
+
+		before, err := reqMX.recentMessages(ctx, roomID)
+		if err != nil {
+			t.Fatalf("list messages: %v", err)
+		}
+		leadBefore := senderMessageCount(before, e.LeadMXID)
+		workerBefore := senderMessageCount(before, e.WorkerMXID)
+
+		// All would wake both; -@lead keeps only worker (proves exclude ≠ Leader strategy).
+		body := "E2E_INTENT_EXCLUDE_WAKE -@lead please reply"
+		if err := reqMX.sendMention(ctx, roomID, body, []string{e.GroupMXID}); err != nil {
+			t.Fatalf("human @Group -@lead: %v", err)
+		}
+
+		waitUntil(t, stepTimeout, "worker reply after @Group -@lead", func(ctx context.Context) (bool, error) {
+			events, err := reqMX.recentMessages(ctx, roomID)
+			if err != nil {
+				return false, err
+			}
+			return senderMessageCount(events, e.WorkerMXID) > workerBefore &&
+				senderHasText(events, e.WorkerMXID, e.ExpectedText), nil
+		})
+
+		events, err := reqMX.recentMessages(ctx, roomID)
+		if err != nil {
+			t.Fatalf("list messages: %v", err)
+		}
+		if senderMessageCount(events, e.LeadMXID) > leadBefore {
+			t.Fatal("lead replied after @Group -@lead; want worker only (dispatch intent)")
+		}
 	}) {
 		return
 	}

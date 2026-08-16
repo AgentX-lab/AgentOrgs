@@ -38,9 +38,10 @@ func (s *HTTPServer) Start() error {
 }
 
 type startCollaborationRequest struct {
-	From    string                  `json:"from"`
-	To      []protocol.ObjectTarget `json:"to"`
-	Payload map[string]interface{}  `json:"payload"`
+	From           string                  `json:"from"`
+	To             []protocol.ObjectTarget `json:"to"`
+	DispatchIntent protocol.DispatchIntent `json:"dispatchIntent"`
+	Payload        map[string]interface{}  `json:"payload"`
 }
 
 func (s *HTTPServer) handleMemberReady(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +107,7 @@ func (s *HTTPServer) handleCollaborations(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	run, err := s.Engine.StartCollaboration(r.Context(), namespace, name, req.From, req.To, req.Payload)
+	run, err := s.Engine.StartCollaboration(r.Context(), namespace, name, req.From, req.To, req.DispatchIntent, req.Payload)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

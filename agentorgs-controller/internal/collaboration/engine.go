@@ -30,7 +30,8 @@ type Reader interface {
 }
 
 // StartCollaboration starts one collaboration from a member to one or more targets.
-func (e *Engine) StartCollaboration(ctx context.Context, namespace, collaborationName, from string, to []protocol.ObjectTarget, payload map[string]interface{}) (protocol.CollaborationRun, error) {
+// intent is optional per-request who/who-not (include / exclude / role).
+func (e *Engine) StartCollaboration(ctx context.Context, namespace, collaborationName, from string, to []protocol.ObjectTarget, intent protocol.DispatchIntent, payload map[string]interface{}) (protocol.CollaborationRun, error) {
 	collab, err := e.Client.GetCollaboration(ctx, namespace, collaborationName)
 	if err != nil {
 		return protocol.CollaborationRun{}, err
@@ -49,9 +50,16 @@ func (e *Engine) StartCollaboration(ctx context.Context, namespace, collaboratio
 		}
 	}
 
+	groupStrategy := collab.Spec.WhenTargetIsGroup.Strategy
+	groupRole := collab.Spec.WhenTargetIsGroup.Role
+	if intent.OnlyThisRole != "" {
+		groupStrategy = agentorgsv1alpha1.GroupTargetRole
+		groupRole = intent.OnlyThisRole
+	}
+
 	resolved := map[string]struct{}{}
 	for _, target := range to {
-		names, err := resolver.ResolveTargets(collab.Spec.WhenTargetIsGroup.Strategy, collab.Spec.WhenTargetIsGroup.Role, agentorgsv1alpha1.ObjectRef{
+		names, err := resolver.ResolveTargets(groupStrategy, groupRole, agentorgsv1alpha1.ObjectRef{
 			Kind: target.Kind,
 			Name: target.Name,
 		})
@@ -72,6 +80,15 @@ func (e *Engine) StartCollaboration(ctx context.Context, namespace, collaboratio
 		return protocol.CollaborationRun{}, fmt.Errorf("no resolved targets for collaboration %q", collaborationName)
 	}
 
+	targetNames, err = applyDispatchIntent(targetNames, intent)
+	if err != nil {
+		return protocol.CollaborationRun{}, err
+	}
+	targetNames, err = filterMembersByStartPolicy(from, targetNames, evaluator)
+	if err != nil {
+		return protocol.CollaborationRun{}, err
+	}
+
 	now := time.Now().UTC()
 	maxRounds := collab.Spec.Limits.MaxReplyRounds
 	if maxRounds == 0 {
@@ -88,6 +105,7 @@ func (e *Engine) StartCollaboration(ctx context.Context, namespace, collaboratio
 		CollaborationName: collaborationName,
 		StartedBy:         from,
 		ResolvedTargets:   targetNames,
+		DispatchIntent:    intent,
 		Status:            protocol.RunStatusRunning,
 		Round:             0,
 		MaxReplyRounds:    maxRounds,
@@ -104,15 +122,16 @@ func (e *Engine) StartCollaboration(ctx context.Context, namespace, collaboratio
 	}
 
 	event := protocol.CollaborationEvent{
-		EventID:       uuid.NewString(),
-		RunID:         run.RunID,
-		Namespace:     namespace,
-		Collaboration: collaborationName,
-		Type:          protocol.EventTypeMemberRequest,
-		Source:        protocol.EventSource{Member: from},
-		Targets:       to,
-		Payload:       payload,
-		CreatedAt:     now,
+		EventID:        uuid.NewString(),
+		RunID:          run.RunID,
+		Namespace:      namespace,
+		Collaboration:  collaborationName,
+		Type:           protocol.EventTypeMemberRequest,
+		Source:         protocol.EventSource{Member: from},
+		Targets:        to,
+		Payload:        payload,
+		DispatchIntent: intent,
+		CreatedAt:      now,
 	}
 	if err := e.processMessage(ctx, run, event, collab, evaluator); err != nil {
 		return protocol.CollaborationRun{}, err

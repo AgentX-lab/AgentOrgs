@@ -146,6 +146,17 @@ func kubectlExec(ns, pod string, args ...string) (string, error) {
 	return stdout.String(), nil
 }
 
+func kubectlPatchCollaborationStrategy(ns, name, strategy string) error {
+	patch := fmt.Sprintf(`{"spec":{"whenTargetIsGroup":{"strategy":%q}}}`, strategy)
+	cmd := exec.Command("kubectl", "-n", ns, "patch", "collaboration", name, "--type=merge", "-p", patch)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("kubectl patch collaboration %s: %w (%s)", name, err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
+}
+
 type matrixClient struct {
 	base  string
 	token string

@@ -111,7 +111,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 			if len(event.Targets) == 0 {
 				return fmt.Errorf("inbound event requires targets")
 			}
-			_, err := engine.StartCollaboration(ctx, event.Namespace, event.Collaboration, event.Source.Member, event.Targets, event.Payload)
+			_, err := engine.StartCollaboration(ctx, event.Namespace, event.Collaboration, event.Source.Member, event.Targets, event.DispatchIntent, event.Payload)
 			return err
 		})
 	}()

@@ -209,6 +209,7 @@ func TestStartCollaborationTwoGroupsAndMember(t *testing.T) {
 			{Kind: agentorgsv1alpha1.GroupKind, Name: "qa-team"},
 			{Kind: agentorgsv1alpha1.MemberKind, Name: "architect"},
 		},
+		protocol.DispatchIntent{},
 		map[string]interface{}{"text": "联调登录接口"},
 	)
 	if err != nil {
@@ -267,6 +268,7 @@ func TestStartCollaborationPolicyDeny(t *testing.T) {
 			{Kind: agentorgsv1alpha1.GroupKind, Name: "backend-team"},
 			{Kind: agentorgsv1alpha1.MemberKind, Name: "architect"},
 		},
+		protocol.DispatchIntent{},
 		nil,
 	)
 	if err == nil {
@@ -300,6 +302,7 @@ func TestStartCollaborationLeaderStrategy(t *testing.T) {
 
 	run, err := engine.StartCollaboration(context.Background(), "agentorgs", "cross-team-work", "product-owner",
 		[]protocol.ObjectTarget{{Kind: agentorgsv1alpha1.GroupKind, Name: "backend-team"}},
+		protocol.DispatchIntent{},
 		map[string]interface{}{"text": "fix login"},
 	)
 	if err != nil {
@@ -318,6 +321,7 @@ func TestStartCollaborationLeaderMissing(t *testing.T) {
 	reader.collab.Spec.WhenTargetIsGroup.Strategy = agentorgsv1alpha1.GroupTargetLeader
 	_, err := engine.StartCollaboration(context.Background(), "agentorgs", "cross-team-work", "product-owner",
 		[]protocol.ObjectTarget{{Kind: agentorgsv1alpha1.GroupKind, Name: "backend-team"}},
+		protocol.DispatchIntent{},
 		nil,
 	)
 	if err == nil {

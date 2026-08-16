@@ -121,14 +121,24 @@ func (h *AppServiceHandler) handleMentionMessage(ctx context.Context, ev matrixE
 		return err
 	}
 
+	intent, err := parseDispatchIntentFromBody(ev.Content.Body, index)
+	if err != nil {
+		return err
+	}
+	targets = dropSkippedTargets(targets, intent)
+	if len(targets) == 0 {
+		return fmt.Errorf("no positive @targets left after applying -@ excludes")
+	}
+
 	return h.Provider.emit(ctx, protocol.CollaborationEvent{
-		Namespace:     h.Namespace,
-		Collaboration: collabName,
-		Type:          protocol.EventTypeMemberRequest,
-		Source:        protocol.EventSource{Member: senderTarget.Name},
-		Targets:       targets,
-		Payload:       map[string]interface{}{"text": ev.Content.Body},
-		CreatedAt:     time.Now().UTC(),
+		Namespace:      h.Namespace,
+		Collaboration:  collabName,
+		Type:           protocol.EventTypeMemberRequest,
+		Source:         protocol.EventSource{Member: senderTarget.Name},
+		Targets:        targets,
+		Payload:        map[string]interface{}{"text": ev.Content.Body},
+		DispatchIntent: intent,
+		CreatedAt:      time.Now().UTC(),
 	})
 }
 

@@ -52,6 +52,37 @@ func (i *MentionIndex) Resolve(mxid string) (protocol.ObjectTarget, error) {
 	return target, nil
 }
 
+// ResolveMentionToken resolves a full MXID, localpart, or Member/Group name.
+func (i *MentionIndex) ResolveMentionToken(token string) (protocol.ObjectTarget, error) {
+	token = strings.TrimSpace(token)
+	token = strings.TrimRight(token, ".,;:!?")
+	if token == "" {
+		return protocol.ObjectTarget{}, fmt.Errorf("empty mention token")
+	}
+	if strings.HasPrefix(token, "@") || strings.Contains(token, ":") {
+		mxid := token
+		if !strings.HasPrefix(mxid, "@") {
+			mxid = "@" + mxid
+		}
+		return i.Resolve(mxid)
+	}
+	// localpart: match @localpart:... in the index
+	lower := strings.ToLower(token)
+	for mxid, target := range i.byMXID {
+		local, _, ok := strings.Cut(strings.TrimPrefix(mxid, "@"), ":")
+		if ok && local == lower {
+			return target, nil
+		}
+	}
+	// Member/Group CR name fallback
+	for _, target := range i.byMXID {
+		if strings.EqualFold(target.Name, token) {
+			return target, nil
+		}
+	}
+	return protocol.ObjectTarget{}, fmt.Errorf("no Member or Group for mention token %q", token)
+}
+
 // ResolveMany resolves several MXIDs. Unknown ids return an error.
 func (i *MentionIndex) ResolveMany(mxids []string) ([]protocol.ObjectTarget, error) {
 	out := make([]protocol.ObjectTarget, 0, len(mxids))

@@ -27,9 +27,9 @@ func collaborateCmd() *cobra.Command {
 		apiURL            string
 		namespace         string
 		collaborationName string
-		from string
-		to   string
-		text string
+		from              string
+		to                string
+		text              string
 	)
 	cmd := &cobra.Command{
 		Use:   "collaborate",
