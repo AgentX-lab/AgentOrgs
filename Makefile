@@ -1,4 +1,4 @@
-.PHONY: build build-controller build-cli build-agent-openclaw build-agent-hermes test generate controller-gen local-k8s-up local-k8s-down demo-apply e2e
+.PHONY: build build-controller build-cli build-agent-openclaw build-agent-hermes test generate controller-gen local-k8s-up local-k8s-down demo-apply e2e e2e-swarm
 
 CONTROLLER_DIR := agentorgs-controller
 OPENCLAW_AGENT_IMAGE ?= agentorgs/agent-openclaw:local
@@ -48,8 +48,11 @@ local-k8s-down:
 demo-apply:
 	kubectl apply -f config/samples/demo.yaml
 
-# Kind e2e: Group Leader mention (fixtures/mention_group_leader.yaml).
-# Swarm (two Groups / two rooms): AGENTORGS_E2E_FIXTURE=fixtures/mention_group_swarm.yaml AGENTORGS_E2E_RUN=TestMentionGroupSwarm
-# mock-llm is e2e-only under tests/e2e/.
+# Kind e2e. mock-llm is e2e-only under tests/e2e/.
 e2e:
+	bash tests/e2e/run.sh
+
+e2e-swarm:
+	AGENTORGS_E2E_FIXTURE=fixtures/mention_group_swarm.yaml \
+	AGENTORGS_E2E_RUN=TestMentionGroupSwarm \
 	bash tests/e2e/run.sh
